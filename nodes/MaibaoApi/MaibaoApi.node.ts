@@ -1,4 +1,4 @@
-/* eslint-disable @n8n/community-nodes/no-http-request-with-manual-auth */
+/* eslint-disable @n8n/community-nodes/no-http-request-with-manual-auth, n8n-nodes-base/node-filename-against-convention */
 import {
 	ApplicationError,
 	IExecuteFunctions,
