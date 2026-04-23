@@ -1,9 +1,9 @@
 {
-  "projectName": "n8n-nodes-maibaoapi",
+  "projectName": "n8n-nodes-lmaoapi",
   "version": "1.0.2",
   "type": "n8n-community-node",
   "generated": "2026-03-08",
-  "repository": "https://github.com/kkuxb/n8n-nodes-maibaoapi.git",
+  "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
   "license": "MIT",
   "author": {
     "name": "毛淞淮",
@@ -58,8 +58,8 @@
   },
   "api": {
     "baseUrls": {
-      "standard": "https://api.maibao.chat/v1",
-      "sora": "https://api.maibao.chat"
+      "standard": "https://api.lmao.net.cn/v1",
+      "sora": "https://api.lmao.net.cn"
     },
     "endpoints": {
       "text": "POST /v1/chat/completions",
@@ -233,7 +233,7 @@
       "version": "1.0.0",
       "date": "2026-03-06",
       "changes": [
-        "Initial MaibaoAPI version",
+        "Initial LmaoAPI-aligned version",
         "Migrated from DeerAPI",
         "Model upgrades",
         "All features retained"
@@ -241,7 +241,7 @@
     }
   ],
   "keywords": [
-    "n8n-nodes-maibaoapi",
+    "n8n-nodes-lmaoapi",
     "maibaoapi",
     "maibao",
     "文字生成",

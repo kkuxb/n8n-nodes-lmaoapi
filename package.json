@@ -1,11 +1,19 @@
 {
-	"name": "n8n-nodes-maibaoapi",
+	"name": "n8n-nodes-lmaoapi",
 	"version": "1.3.1",
-	"description": "便捷调用 MaibaoAPI 进行文字生成、图像生成、音频转文本。",
+	"description": "便捷调用 LmaoAPI 进行文字生成、图像生成、音频转文本。",
 	"license": "MIT",
-	"homepage": "",
+	"homepage": "https://github.com/kkuxb/n8n-nodes-lmaoapi#readme",
 	"keywords": [
-		"n8n-community-node-package","n8n-nodes-maibaoapi","maibaoapi","maibao","文字生成","图像生成","GPT-image-2","音频转文本","nano banana2"
+		"n8n-community-node-package",
+		"n8n-nodes-lmaoapi",
+		"lmaoapi",
+		"lmao",
+		"文字生成",
+		"图像生成",
+		"GPT-image-2",
+		"音频转文本",
+		"nano banana2"
 	],
 	"author": {
 		"name": "毛淞淮",
@@ -13,7 +21,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/kkuxb/n8n-nodes-maibaoapi.git"
+		"url": "git+https://github.com/kkuxb/n8n-nodes-lmaoapi.git"
+	},
+	"bugs": {
+		"url": "https://github.com/kkuxb/n8n-nodes-lmaoapi/issues"
+	},
+	"packageManager": "npm@11.12.1",
+	"engines": {
+		"node": "22.x"
 	},
 	"scripts": {
 		"build": "n8n-node build",
@@ -38,7 +53,7 @@
 		]
 	},
 	"devDependencies": {
-		"@n8n/node-cli": "*",
+		"@n8n/node-cli": "^0.23.1",
 		"@types/node": "^25.0.3",
 		"eslint": "9.32.0",
 		"prettier": "3.6.2",
@@ -46,6 +61,6 @@
 		"typescript": "5.9.2"
 	},
 	"peerDependencies": {
-		"n8n-workflow": "*"
+		"n8n-workflow": "^2.13.1"
 	}
 }

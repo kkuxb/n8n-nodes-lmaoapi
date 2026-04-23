@@ -1,4 +1,5 @@
 import {
+	ApplicationError,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
@@ -18,7 +19,14 @@ import {
 } from './GptImageUtils';
 
 function debugLog(scope: string, details: Record<string, unknown>): void {
-	if (process.env.MAIBAO_DEBUG !== '1') {
+	// eslint-disable-next-line @n8n/community-nodes/no-restricted-globals
+	const runtime = global as typeof global & {
+		process?: {
+			env?: Record<string, string | undefined>;
+		};
+	};
+
+	if (runtime.process?.env?.MAIBAO_DEBUG !== '1') {
 		return;
 	}
 
@@ -31,7 +39,7 @@ function debugLog(scope: string, details: Record<string, unknown>): void {
 		})
 		.join(' ');
 
-	console.log(`[MaibaoAPI][${scope}] ${rendered}`);
+	console.log(`[LmaoAPI][${scope}] ${rendered}`);
 }
 
 // 图片数据接口
@@ -88,13 +96,14 @@ export function buildGeminiGenerationConfig(
 }
 
 function buildNativeMultipartBody(formDataBody: Record<string, unknown>): unknown {
-	const runtime = globalThis as typeof globalThis & {
+	// eslint-disable-next-line @n8n/community-nodes/no-restricted-globals
+	const runtime = global as typeof global & {
 		FormData?: new () => MultipartFormDataLike;
 		Blob?: BlobCtorLike;
 	};
 
 	if (!runtime.FormData || !runtime.Blob) {
-		throw new Error('当前运行环境不支持 multipart FormData。');
+		throw new ApplicationError('当前运行环境不支持 multipart FormData。');
 	}
 
 	const formData = new runtime.FormData();
@@ -472,16 +481,15 @@ function convertWordsToSentences(data: WhisperResponse): WhisperResponse {
 
 export class MaibaoApi implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'MaibaoAPI',
+		displayName: 'LmaoAPI',
 		name: 'maibaoApi',
-		icon: 'file:maibaoapi.png',
+		icon: 'file:maibaoapi.svg',
 		group: ['transform'],
 		version: 1,
-		description: '调用 MaibaoAPI 进行文字、图像、Sora 2 视频生成及向量嵌入',
-		defaults: { name: 'MaibaoAPI' },
+		description: '调用 LmaoAPI 进行文字、图像、Sora 2 视频生成及向量嵌入',
+		defaults: { name: 'LmaoAPI' },
 		inputs: ['main'],
 		outputs: ['main'],
-		// eslint-disable-next-line @n8n/community-nodes/no-credential-reuse
 		credentials: [{ name: 'maibaoApi', required: true }],
 		properties: [
 			{

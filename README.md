@@ -1,6 +1,6 @@
-# n8n-nodes-MaibaoAPI（V1.3.0 版本）
+# n8n-nodes-LmaoAPI（V1.3.0 版本）
 
-🚀 **告别见鬼的 HTTP Request 节点！** 在 n8n 中像原生节点一样傻瓜式调用 MaibaoAPI 中的模型。
+🚀 **告别见鬼的 HTTP Request 节点！** 在 n8n 中像原生节点一样傻瓜式调用 LmaoAPI 中的模型。
 
 ---
 
@@ -22,7 +22,7 @@
 
 还在为配置那个该死的 **HTTP Request** 节点抓耳挠腮吗？还在手动拼接复杂的 JSON 或者在 Code 节点里苦哈哈地写 Base64 转换函数吗？（说的就是我自己）
 
-为了无痛调用麦包平台（https://api.maibao.chat）上的各种AI大模型，本项目诞生了！
+为了无痛调用龙猫平台（https://api.lmao.net.cn）上的各种AI大模型，本项目诞生了！
 
 作者本人**完全没有代码基础**，全靠 **Gemini和Claude** 鼎力赞助完成，这个节点（对我来说）很好用！
 
@@ -181,14 +181,14 @@
 
 ### v1.0.0 (2026-03-06)
 
-- **初始版本**：从 DeerAPI 迁移到 MaibaoAPI
+- **初始版本**：从 DeerAPI 迁移到 LmaoAPI
 - **模型升级**：
   - 文字生成默认模型：`gemini-3.1-pro-preview`
   - 图像生成模型：
     - `Gemini-3.1-Flash-Image` (gemini-3.1-flash-image-preview) - 支持13种尺寸比例
     - `Gemini-3-Pro-Image` (gemini-3-pro-image-preview) - 支持9种尺寸比例
     - `即梦 5.0` (doubao-seedream-5-0-260128) - 支持2K/3K分辨率
-- **API 端点更新**：Base URL 更新为 `https://api.maibao.chat/v1`
+- **API 端点更新**：Base URL 更新为 `https://api.lmao.net.cn/v1`
 - **功能保持**：所有原有功能完全保留（文字生成、图像生成、视频生成、向量嵌入）
 
 ---
@@ -198,10 +198,10 @@
 在你的 n8n 根目录下运行：
 
 ```
-npm install n8n-nodes-maibaoapi
+npm install n8n-nodes-LmaoAPI
 ```
 
-或者在 n8n 设定页面的 **Community Nodes** 中搜索 `n8n-nodes-MaibaoAPI` 进行安装。
+或者在 n8n 设定页面的 **Community Nodes** 中搜索 `n8n-nodes-LmaoAPI` 进行安装。
 
 （个人推荐下面这种方法，因为安装方法是 Gemini 自己脑补写的，虽然看起来是对的，但我没用过命令行安装的方式）
 
@@ -229,9 +229,9 @@ npm run dev
 
 ## 🛞 使用流程
 
-1. **添加凭证：** 在 n8n 凭证管理页面创建凭证，凭证搜索"MaibaoAPI"。凭证只需要填入从 MaibaoAPI 后台获取的 API Key 就行了，**Base URL 不要改**。
+1. **添加凭证：** 在 n8n 凭证管理页面创建凭证，凭证搜索"LmaoAPI"。凭证只需要填入从 MaLmaoAPI台获取的 API Key 就行了，**Base URL 不要改**。
 
-2. **添加节点：** 在工作流中添加节点时，可搜索"MaibaoAPI"，即可找到本节点（找不到是因为你还没安装本社区节点）
+2. **添加节点：** 在工作流中添加节点时，可搜索"LmaoAPI"，即可找到本节点（找不到是因为你还没安装本社区节点）
 
 3. **节点配置：** 选择凭证 → 选择模式（文本生成/图像生成/视频生成/向量嵌入/音频转文本）→ 填好其它两三个参数（模型 ID、提示词等）→ OJ8K 完事！
 
