@@ -9,6 +9,20 @@
 
 ## 日常同步步骤
 
+快捷方式：
+
+```bash
+npm run sync-upstream
+```
+
+如果你确认本次同步完成后要立即推送到 `origin/main`，可使用：
+
+```bash
+npm run sync-upstream -- --push
+```
+
+脚本默认会检查工作区是否干净，并自动执行 `fetch -> switch main -> rebase -> lint -> build`。默认不会自动推送，避免误覆盖远端历史。
+
 1. 确保工作区干净：
 
 ```bash

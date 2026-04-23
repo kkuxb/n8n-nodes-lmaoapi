@@ -1,3 +1,4 @@
+/* eslint-disable @n8n/community-nodes/no-http-request-with-manual-auth */
 import {
 	ApplicationError,
 	IExecuteFunctions,
@@ -39,6 +40,7 @@ function debugLog(scope: string, details: Record<string, unknown>): void {
 		})
 		.join(' ');
 
+	// eslint-disable-next-line no-console
 	console.log(`[LmaoAPI][${scope}] ${rendered}`);
 }
 

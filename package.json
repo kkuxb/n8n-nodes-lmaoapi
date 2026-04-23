@@ -36,6 +36,7 @@
 		"dev": "node scripts/dev.mjs",
 		"lint": "n8n-node lint",
 		"lint:fix": "n8n-node lint --fix",
+		"sync-upstream": "node scripts/sync-upstream.mjs",
 		"test:gpt-image-2": "node --test test/gpt-image-2.test.js",
 		"release": "n8n-node release"
 	},
