@@ -484,7 +484,7 @@ function convertWordsToSentences(data: WhisperResponse): WhisperResponse {
 export class MaibaoApi implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'LmaoAPI',
-		name: 'maibaoApi',
+		name: 'lmaoApi',
 		icon: 'file:maibaoapi.svg',
 		group: ['transform'],
 		version: 1,
@@ -492,7 +492,7 @@ export class MaibaoApi implements INodeType {
 		defaults: { name: 'LmaoAPI' },
 		inputs: ['main'],
 		outputs: ['main'],
-		credentials: [{ name: 'maibaoApi', required: true }],
+		credentials: [{ name: 'lmaoApi', required: true }],
 		properties: [
 			{
 				displayName: '模式',
@@ -903,7 +903,7 @@ export class MaibaoApi implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const credentials = await this.getCredentials('maibaoApi');
+		const credentials = await this.getCredentials('lmaoApi');
 		const mode = this.getNodeParameter('mode', 0) as string;
 		const rawBaseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
 		const soraBaseUrl = rawBaseUrl.replace(/\/v1$/, '');

@@ -1,7 +1,7 @@
 import { ICredentialType, INodeProperties, ICredentialTestRequest } from 'n8n-workflow';
 
 export class MaibaoApi implements ICredentialType {
-	name = 'maibaoApi';
+	name = 'lmaoApi';
 	displayName = 'LmaoAPI API';
 	icon = { light: 'file:maibaoapi.svg', dark: 'file:maibaoapi.svg' } as const;
 	documentationUrl = 'https://api.lmao.net.cn';
