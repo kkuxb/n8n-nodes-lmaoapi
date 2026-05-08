@@ -72,16 +72,14 @@ interface ImagesApiResponse {
 	[key: string]: unknown;
 }
 
-function buildGeminiGenerationConfig(
+export function buildGeminiGenerationConfig(
 	imageModel: string,
 	aspectRatio: string,
 	imageSize: string,
 ): Record<string, unknown> {
 	const imageConfig: Record<string, unknown> = { aspectRatio };
 
-	if (imageModel === 'gemini-3-pro-image-preview') {
-		imageConfig.imageSize = imageSize;
-	}
+	imageConfig.imageSize = imageSize;
 
 	return {
 		responseModalities: ['IMAGE'],
@@ -668,10 +666,14 @@ export class MaibaoApi implements INodeType {
 				type: 'options',
 				displayOptions: { show: { mode: ['image'], imageModel: ['gpt-image-2'] } },
 				options: [
+					{ name: '1024x1024（1:1）', value: '1024x1024' },
+					{ name: '1024x1536（2:3）', value: '1024x1536' },
+					{ name: '1536x1024（3:2）', value: '1536x1024' },
+					{ name: '2048x1152（16:9）', value: '2048x1152' },
+					{ name: '2048x2048（1:1）', value: '2048x2048' },
+					{ name: '2160x3840（9:16）', value: '2160x3840' },
+					{ name: '3840x2160（16:9）', value: '3840x2160' },
 					{ name: '自动', value: 'auto' },
-					{ name: '1024x1024', value: '1024x1024' },
-					{ name: '1536x1024', value: '1536x1024' },
-					{ name: '1024x1536', value: '1024x1536' },
 				],
 				default: 'auto',
 			},
@@ -692,14 +694,13 @@ export class MaibaoApi implements INodeType {
 				displayName: '背景',
 				name: 'imageBackground',
 				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['gpt-image-2'] } },
+				displayOptions: { show: { mode: ['__hidden__'] } },
 				options: [
 					{ name: '自动', value: 'auto' },
 					{ name: '不透明', value: 'opaque' },
-					{ name: '透明', value: 'transparent' },
 				],
 				default: 'auto',
-				description: '透明背景仅支持 PNG 或 WEBP 输出格式',
+				description: 'GPT-Image-2 暂不开放背景设置，默认使用自动背景',
 			},
 			{
 				displayName: '输出格式',
@@ -1017,7 +1018,7 @@ export class MaibaoApi implements INodeType {
 					} else if (isGptImageModel(imageModel)) {
 						const rawSize = this.getNodeParameter('imageSize', i) as string;
 						const imageQuality = this.getNodeParameter('imageQuality', i, 'auto') as GptImageQuality;
-						const imageBackground = this.getNodeParameter('imageBackground', i, 'auto') as GptImageBackground;
+						const imageBackground: GptImageBackground = 'auto';
 						const imageOutputFormat = this.getNodeParameter('imageOutputFormat', i, 'png') as GptImageOutputFormat;
 
 						let extractedImages: ImageData[];

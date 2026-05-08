@@ -33,6 +33,10 @@ export interface GptImageRequest {
 	outputMimeType: string;
 }
 
+function normalizeGptImageBackground(background: GptImageBackground): string {
+	return background === 'transparent' ? 'transparent_background' : background;
+}
+
 export function isGptImageModel(model: string): boolean {
 	return model === 'gpt-image-2';
 }
@@ -50,7 +54,7 @@ export function buildGptImageRequest(
 		prompt: options.prompt,
 		size: options.size,
 		quality: options.quality,
-		background: options.background,
+		background: normalizeGptImageBackground(options.background),
 		output_format: options.outputFormat,
 		n: 1,
 	};

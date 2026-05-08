@@ -11,7 +11,9 @@ Thumbs.db
 .npm-cache/
 .npm-n8n-cache/
 .npm-n8n-cache-node22/
+.npm-n8n-cache-node24/
 .n8n-dev-server/
+.n8n-dev-server-node24/
 .planning/
 .claude/
 .vscode/

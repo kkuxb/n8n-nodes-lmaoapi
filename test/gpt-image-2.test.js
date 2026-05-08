@@ -6,6 +6,7 @@ const {
 	buildGptImageRequest,
 	isGptImageModel,
 } = require('../dist/nodes/MaibaoApi/GptImageUtils.js');
+const { MaibaoApi } = require('../dist/nodes/MaibaoApi/MaibaoApi.node.js');
 
 test('识别 gpt-image-2 模型', () => {
 	assert.equal(isGptImageModel('gpt-image-2'), true);
@@ -16,7 +17,7 @@ test('无参考图时走文生图接口', () => {
 	const request = buildGptImageRequest('gpt-image-2', {
 		prompt: '一只海边散步的水獭',
 		images: [],
-		size: '1024x1024',
+		size: '2048x2048',
 		quality: 'medium',
 		background: 'auto',
 		outputFormat: 'png',
@@ -27,7 +28,7 @@ test('无参考图时走文生图接口', () => {
 	assert.deepEqual(request.body, {
 		model: 'gpt-image-2',
 		prompt: '一只海边散步的水獭',
-		size: '1024x1024',
+		size: '2048x2048',
 		quality: 'medium',
 		background: 'auto',
 		output_format: 'png',
@@ -120,5 +121,57 @@ test('透明背景不允许 jpeg 输出', () => {
 				outputFormat: 'jpeg',
 			}),
 		/透明背景仅支持 PNG 或 WEBP 输出格式/,
+	);
+});
+
+test('透明背景使用 API 接受的 transparent_background 参数', () => {
+	const request = buildGptImageRequest('gpt-image-2', {
+		prompt: '透明背景图标',
+		images: [],
+		size: '1024x1024',
+		quality: 'auto',
+		background: 'transparent',
+		outputFormat: 'png',
+	});
+
+	assert.equal(request.body.background, 'transparent_background');
+});
+
+test('节点为 GPT-Image-2 提供官方支持的 8 个分辨率选项', () => {
+	const node = new MaibaoApi();
+	const imageSizeProperty = node.description.properties.find(
+		(property) =>
+			property.name === 'imageSize' &&
+			property.displayOptions?.show?.imageModel?.includes('gpt-image-2'),
+	);
+
+	assert.deepEqual(
+		imageSizeProperty.options.map((option) => ({ name: option.name, value: option.value })),
+		[
+			{ name: '1024x1024（1:1）', value: '1024x1024' },
+			{ name: '1024x1536（2:3）', value: '1024x1536' },
+			{ name: '1536x1024（3:2）', value: '1536x1024' },
+			{ name: '2048x1152（16:9）', value: '2048x1152' },
+			{ name: '2048x2048（1:1）', value: '2048x2048' },
+			{ name: '2160x3840（9:16）', value: '2160x3840' },
+			{ name: '3840x2160（16:9）', value: '3840x2160' },
+			{ name: '自动', value: 'auto' },
+		],
+	);
+});
+
+test('节点隐藏 GPT-Image-2 背景参数且不再暴露透明选项', () => {
+	const node = new MaibaoApi();
+	const backgroundProperty = node.description.properties.find(
+		(property) => property.name === 'imageBackground',
+	);
+
+	assert.deepEqual(backgroundProperty.displayOptions, { show: { mode: ['__hidden__'] } });
+	assert.deepEqual(
+		backgroundProperty.options.map((option) => ({ name: option.name, value: option.value })),
+		[
+			{ name: '自动', value: 'auto' },
+			{ name: '不透明', value: 'opaque' },
+		],
 	);
 });

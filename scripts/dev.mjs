@@ -7,8 +7,9 @@ const isWin = process.platform === 'win32';
 const nodeExecutable = process.execPath;
 const projectRoot = process.cwd();
 const n8nUserFolder = path.join(os.homedir(), '.n8n-node-cli');
-const pinnedN8nVersion = '1.123.15';
-const persistentN8nInstallDir = path.join(projectRoot, '.n8n-dev-server');
+const pinnedN8nVersion = '2.19.5';
+const requiredNodeMajorVersion = 24;
+const persistentN8nInstallDir = path.join(projectRoot, '.n8n-dev-server-node24');
 const persistentN8nPackageJson = path.join(persistentN8nInstallDir, 'package.json');
 const persistentN8nBinary = isWin
 	? path.join(persistentN8nInstallDir, 'node_modules', '.bin', 'n8n.cmd')
@@ -30,7 +31,7 @@ const localN8nNodeCli = path.join(
 const npmCliPath = isWin
 	? path.join(process.env.APPDATA ?? '', 'npm', 'node_modules', 'npm', 'bin', 'npm-cli.js')
 	: path.join(path.dirname(path.dirname(process.execPath)), 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js');
-const localN8nCache = path.join(projectRoot, '.npm-n8n-cache');
+const localN8nCache = path.join(projectRoot, '.npm-n8n-cache-node24');
 const nodeMajorVersion = Number.parseInt(process.versions.node.split('.')[0], 10);
 
 const sharedEnv = {
@@ -106,69 +107,19 @@ function bootstrapPersistentN8nInstall() {
 }
 
 function checkWindowsN8nPrereqs() {
-	if (nodeMajorVersion !== 22) {
+	if (nodeMajorVersion !== requiredNodeMajorVersion) {
 		console.error([
-			'npm run dev requires Node.js 22 for this project.',
+			`npm run dev requires Node.js ${requiredNodeMajorVersion} for this project.`,
 			'',
 			'Reason:',
-			'- The pinned n8n dev server used by this repo is currently stable with Node 22.',
-			'- Node 24 triggers native dependency install failures on Windows during n8n startup.',
+			`- This repo pins a local n8n@${pinnedN8nVersion} dev server runtime for Node ${requiredNodeMajorVersion}.`,
+			'- Using a separate runtime/cache directory avoids stale Node 22 native dependencies.',
 			'',
-			'Switch this project shell to Node 22 and try again.',
+			`Switch this project shell to Node ${requiredNodeMajorVersion} and try again.`,
 		].join('\n'));
 
 		process.exit(1);
 	}
-
-	if (!isWin) return;
-
-	const configuredPython = process.env.npm_config_python ?? process.env.PYTHON;
-
-	if (configuredPython) return;
-
-	const pyList = spawnSync('py', ['-0p'], {
-		encoding: 'utf8',
-		shell: false,
-	});
-
-	if (pyList.status !== 0) return;
-
-	const defaultPythonLine = pyList.stdout
-		.split(/\r?\n/)
-		.map((line) => line.trim())
-		.find((line) => line.includes('*'));
-
-	if (!defaultPythonLine?.includes('Python314')) return;
-
-	const distutilsCheck = spawnSync('py', ['-3.14', '-c', 'import distutils'], {
-		encoding: 'utf8',
-		shell: false,
-	});
-
-	if (distutilsCheck.status === 0) return;
-
-	console.error([
-		'npm run dev cannot start n8n on this Windows setup right now.',
-		'',
-		'Root cause:',
-		'- n8n startup pulls in sqlite3, which falls back to node-gyp when no compatible prebuild is available.',
-		'- node-gyp is currently selecting Python 3.14 on this machine.',
-		'- Python 3.14 removed distutils, so the sqlite3 native build fails before n8n can start.',
-		'',
-		'Why it looks stuck:',
-		'- the n8n subprocess fails during its hidden install/startup path while the TypeScript watcher keeps running.',
-		'',
-		'How to fix locally:',
-		'1. Install Python 3.12 or 3.11 with pip/setuptools included.',
-		'2. Point npm/node-gyp to it, for example:',
-		'   npm config set python "C:\\Path\\To\\Python312\\python.exe"',
-		'3. Re-run `npm run dev`.',
-		'',
-		'Optional verification command:',
-		'   npm install --save-dev n8n@1.123.15',
-	].join('\n'));
-
-	process.exit(1);
 }
 
 function run(name, command, args, options = {}) {
