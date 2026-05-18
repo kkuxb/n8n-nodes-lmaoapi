@@ -3,6 +3,9 @@ node_modules
 *.log
 *.tmp
 tmpclaude-*
+.tmp-upstream-*/
+.tmp-upstream-full-*/
+.tmp-upstream-sync-*/
 nul
 .DS_Store
 Thumbs.db

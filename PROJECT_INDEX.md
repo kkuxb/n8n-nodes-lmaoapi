@@ -1,7 +1,7 @@
-# Project Index: n8n-nodes-maibaoapi
+# Project Index: n8n-nodes-lmaoapi
 
 **Generated:** 2026-03-08
-**Version:** 1.0.2
+**Version:** 1.3.3
 **Type:** n8n Community Node Package
 
 ---
@@ -9,13 +9,13 @@
 ## 📁 Project Structure
 
 ```
-n8n-nodes-maibaoapi/
+n8n-nodes-lmaoapi/
 ├── credentials/
 │   └── MaibaoApi.credentials.ts    # API credential definition
 ├── nodes/
 │   └── MaibaoApi/
 │       ├── MaibaoApi.node.ts       # Main node implementation (713 lines)
-│       └── maibaoapi.png           # Node icon
+│       └── maibaoapi.svg           # Node icon
 ├── dist/                           # Compiled output (published to npm)
 │   ├── credentials/
 │   ├── nodes/
@@ -43,7 +43,7 @@ n8n-nodes-maibaoapi/
 
 - **Path:** `nodes/MaibaoApi/MaibaoApi.node.ts`
 - **Class:** `MaibaoApi implements INodeType`
-- **Purpose:** n8n node for MaibaoAPI integration (text, image, video, embeddings)
+- **Purpose:** n8n node for LmaoAPI integration (text, image, video, embeddings)
 
 ### Credentials
 
@@ -95,7 +95,7 @@ n8n-nodes-maibaoapi/
 **Properties:**
 
 - `apiKey` - API authentication key (password field)
-- `baseUrl` - API base URL (default: `https://api.maibao.chat/v1`)
+- `baseUrl` - API base URL (default: `https://api.lmao.net.cn/v1`)
 
 ---
 
@@ -103,8 +103,8 @@ n8n-nodes-maibaoapi/
 
 ### package.json
 
-- **Name:** `n8n-nodes-maibaoapi`
-- **Version:** 1.0.2
+- **Name:** `n8n-nodes-lmaoapi`
+- **Version:** 1.3.3
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`
@@ -148,7 +148,7 @@ n8n-nodes-maibaoapi/
 ### CHANGELOG.md (1.3KB)
 
 - **Latest:** v1.0.0 (2026-03-06)
-- **Changes:** Migration from DeerAPI to MaibaoAPI, model upgrades
+- **Changes:** Migration from DeerAPI to LmaoAPI, model upgrades
 
 ### LICENSE.md (1KB)
 
@@ -215,7 +215,7 @@ npm run release         # Create new release (uses release-it)
 ### Installation in n8n
 
 ```bash
-npm install n8n-nodes-maibaoapi
+npm install n8n-nodes-lmaoapi
 ```
 
 Or install via n8n Community Nodes UI.
@@ -226,8 +226,8 @@ Or install via n8n Community Nodes UI.
 
 ### Base URLs
 
-- **Standard API:** `https://api.maibao.chat/v1`
-- **Sora API:** `https://api.maibao.chat` (v1 suffix removed)
+- **Standard API:** `https://api.lmao.net.cn/v1`
+- **Sora API:** `https://api.lmao.net.cn` (v1 suffix removed)
 
 ### Endpoints
 
@@ -308,7 +308,7 @@ Or install via n8n Community Nodes UI.
 
 ### v1.0.0 (2026-03-06)
 
-- Initial MaibaoAPI version
+- Initial LmaoAPI version
 - Migrated from DeerAPI
 - Model upgrades (Gemini 3.1, 即梦 5.0)
 - All features retained (text, image, video, embeddings)

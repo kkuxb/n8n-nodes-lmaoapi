@@ -17,3 +17,12 @@ test('dev script no longer contains stale Node 22 guidance', () => {
 	assert.doesNotMatch(devScript, /Switch this project shell to Node 22/);
 	assert.doesNotMatch(devScript, /n8n@1\.123\.15/);
 });
+
+test('dev script clears stale upstream custom node cache before startup', () => {
+	assert.match(devScript, /n8n-nodes-maibaoapi/);
+	assert.match(devScript, /credentials\.json/);
+	assert.match(devScript, /nodes\.json/);
+	assert.match(devScript, /node-versions\.json/);
+	assert.match(devScript, /resetGeneratedN8nCustomNodeCache\(\);/);
+	assert.match(devScript, /Could not remove stale upstream package link/);
+});

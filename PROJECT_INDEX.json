@@ -1,6 +1,6 @@
 {
   "projectName": "n8n-nodes-lmaoapi",
-  "version": "1.0.2",
+  "version": "1.3.3",
   "type": "n8n-community-node",
   "generated": "2026-03-08",
   "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
@@ -23,23 +23,38 @@
       "compiled": "dist/nodes/MaibaoApi/MaibaoApi.node.js"
     },
     "directories": {
-      "source": ["credentials", "nodes"],
-      "build": ["dist"],
-      "config": [".github", ".vscode"]
+      "source": [
+        "credentials",
+        "nodes"
+      ],
+      "build": [
+        "dist"
+      ],
+      "config": [
+        ".github",
+        ".vscode"
+      ]
     }
   },
   "modules": {
     "MaibaoApi": {
       "path": "nodes/MaibaoApi/MaibaoApi.node.ts",
       "type": "INodeType",
-      "exports": ["MaibaoApi"],
+      "exports": [
+        "MaibaoApi"
+      ],
       "lines": 713,
       "functions": [
         "execute",
         "collectBinaryFromNodes",
         "extractImagesFromBinary"
       ],
-      "modes": ["text", "image", "video", "embeddings"],
+      "modes": [
+        "text",
+        "image",
+        "video",
+        "embeddings"
+      ],
       "features": [
         "multimodal-input",
         "cross-node-binary-reading",
@@ -51,9 +66,14 @@
     "MaibaoApiCredentials": {
       "path": "credentials/MaibaoApi.credentials.ts",
       "type": "ICredentialType",
-      "exports": ["MaibaoApi"],
+      "exports": [
+        "MaibaoApi"
+      ],
       "lines": 25,
-      "properties": ["apiKey", "baseUrl"]
+      "properties": [
+        "apiKey",
+        "baseUrl"
+      ]
     }
   },
   "api": {
@@ -81,19 +101,30 @@
           "id": "gemini-3.1-flash-image-preview",
           "name": "Nano Banana 2",
           "aspectRatios": 13,
-          "resolutions": ["1K", "2K", "4K"]
+          "resolutions": [
+            "1K",
+            "2K",
+            "4K"
+          ]
         },
         {
           "id": "gemini-3-pro-image-preview",
           "name": "Nano Banana 1 Pro",
           "aspectRatios": 9,
-          "resolutions": ["1K", "2K", "4K"]
+          "resolutions": [
+            "1K",
+            "2K",
+            "4K"
+          ]
         },
         {
           "id": "doubao-seedream-5-0-260128",
           "name": "即梦 5.0",
           "aspectRatios": 0,
-          "resolutions": ["2K", "3K"]
+          "resolutions": [
+            "2K",
+            "3K"
+          ]
         }
       ],
       "video": [
@@ -156,8 +187,15 @@
   "ci": {
     "platform": "github-actions",
     "nodeVersion": "22",
-    "steps": ["npm ci", "npm run lint", "npm run build"],
-    "triggers": ["pull_request", "push:main"]
+    "steps": [
+      "npm ci",
+      "npm run lint",
+      "npm run build"
+    ],
+    "triggers": [
+      "pull_request",
+      "push:main"
+    ]
   },
   "documentation": {
     "README.md": {
@@ -196,9 +234,19 @@
   },
   "features": {
     "binaryDataHandling": {
-      "modes": ["current", "specified"],
+      "modes": [
+        "current",
+        "specified"
+      ],
       "maxImages": 3,
-      "defaultProperties": ["data", "data0", "data1", "data2", "file", "attachment"],
+      "defaultProperties": [
+        "data",
+        "data0",
+        "data1",
+        "data2",
+        "file",
+        "attachment"
+      ],
       "preReading": true
     },
     "videoGeneration": {
@@ -208,7 +256,13 @@
         "interval": 15000,
         "timeout": 600000
       },
-      "operations": ["create", "remix", "retrieve", "download", "list"],
+      "operations": [
+        "create",
+        "remix",
+        "retrieve",
+        "download",
+        "list"
+      ],
       "downloadTimeout": 300000
     },
     "multimodal": {
@@ -233,7 +287,7 @@
       "version": "1.0.0",
       "date": "2026-03-06",
       "changes": [
-        "Initial LmaoAPI-aligned version",
+        "Initial LmaoAPI version",
         "Migrated from DeerAPI",
         "Model upgrades",
         "All features retained"
@@ -242,8 +296,8 @@
   ],
   "keywords": [
     "n8n-nodes-lmaoapi",
-    "maibaoapi",
-    "maibao",
+    "lmaoapi",
+    "lmao",
     "文字生成",
     "图像生成",
     "Sora 2 视频生成",

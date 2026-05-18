@@ -5,6 +5,7 @@ const {
 	buildGptImageMultipartFormData,
 	buildGptImageRequest,
 	isGptImageModel,
+	resolveGptImageSize,
 } = require('../dist/nodes/MaibaoApi/GptImageUtils.js');
 const { MaibaoApi } = require('../dist/nodes/MaibaoApi/MaibaoApi.node.js');
 
@@ -137,7 +138,25 @@ test('透明背景使用 API 接受的 transparent_background 参数', () => {
 	assert.equal(request.body.background, 'transparent_background');
 });
 
-test('节点为 GPT-Image-2 提供官方支持的 8 个分辨率选项', () => {
+test('节点默认使用 GPT-Image-2 且模型选项排在第一位', () => {
+	const node = new MaibaoApi();
+	const imageModelProperty = node.description.properties.find(
+		(property) => property.name === 'imageModel',
+	);
+
+	assert.equal(imageModelProperty.default, 'gpt-image-2');
+	assert.deepEqual(
+		imageModelProperty.options.map((option) => ({ name: option.name, value: option.value })),
+		[
+			{ name: 'GPT-Image-2', value: 'gpt-image-2' },
+			{ name: 'Nano Banana 2', value: 'gemini-3.1-flash-image-preview' },
+			{ name: 'Nano Banana 1 Pro', value: 'gemini-3-pro-image-preview' },
+			{ name: '即梦 5.0', value: 'doubao-seedream-5-0-260128' },
+		],
+	);
+});
+
+test('节点为 GPT-Image-2 提供官方支持的分辨率选项并将自定义放在最上方', () => {
 	const node = new MaibaoApi();
 	const imageSizeProperty = node.description.properties.find(
 		(property) =>
@@ -148,6 +167,7 @@ test('节点为 GPT-Image-2 提供官方支持的 8 个分辨率选项', () => {
 	assert.deepEqual(
 		imageSizeProperty.options.map((option) => ({ name: option.name, value: option.value })),
 		[
+			{ name: '自定义', value: 'custom' },
 			{ name: '1024x1024（1:1）', value: '1024x1024' },
 			{ name: '1024x1536（2:3）', value: '1024x1536' },
 			{ name: '1536x1024（3:2）', value: '1536x1024' },
@@ -157,6 +177,64 @@ test('节点为 GPT-Image-2 提供官方支持的 8 个分辨率选项', () => {
 			{ name: '3840x2160（16:9）', value: '3840x2160' },
 			{ name: '自动', value: 'auto' },
 		],
+	);
+});
+
+test('节点仅在 GPT-Image-2 选择自定义分辨率时显示输入框', () => {
+	const node = new MaibaoApi();
+	const customImageSizeProperty = node.description.properties.find(
+		(property) => property.name === 'customImageSize',
+	);
+
+	assert.deepEqual(customImageSizeProperty.displayOptions, {
+		show: { mode: ['image'], imageModel: ['gpt-image-2'], imageSize: ['custom'] },
+	});
+});
+
+test('GPT-Image-2 自定义分辨率支持常见分隔符并统一为 OpenAI 格式', () => {
+	assert.equal(resolveGptImageSize('custom', '2048x1152'), '2048x1152');
+	assert.equal(resolveGptImageSize('custom', '2048*1152'), '2048x1152');
+	assert.equal(resolveGptImageSize('custom', '2048×1152'), '2048x1152');
+	assert.equal(resolveGptImageSize('custom', '2048 / 1152'), '2048x1152');
+	assert.equal(resolveGptImageSize('auto'), 'auto');
+	assert.equal(resolveGptImageSize('1536x1024'), '1536x1024');
+});
+
+test('GPT-Image-2 自定义分辨率会拒绝非法格式', () => {
+	assert.throws(
+		() => resolveGptImageSize('custom', ''),
+		/自定义分辨率格式无效/,
+	);
+	assert.throws(
+		() => resolveGptImageSize('custom', '2048'),
+		/自定义分辨率格式无效/,
+	);
+	assert.throws(
+		() => resolveGptImageSize('custom', '2048x1152x1024'),
+		/自定义分辨率格式无效/,
+	);
+});
+
+test('GPT-Image-2 自定义分辨率会按 OpenAI 尺寸约束校验', () => {
+	assert.throws(
+		() => resolveGptImageSize('custom', '1025x1024'),
+		/都必须能被 16 整除/,
+	);
+	assert.throws(
+		() => resolveGptImageSize('custom', '3856x1024'),
+		/最大边不能超过 3840px/,
+	);
+	assert.throws(
+		() => resolveGptImageSize('custom', '3200x1024'),
+		/长短边比例不能超过 3:1/,
+	);
+	assert.throws(
+		() => resolveGptImageSize('custom', '512x512'),
+		/总像素数必须在 655360 到 8294400 之间/,
+	);
+	assert.throws(
+		() => resolveGptImageSize('custom', '3840x3840'),
+		/总像素数必须在 655360 到 8294400 之间/,
 	);
 });
 

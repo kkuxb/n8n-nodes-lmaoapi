@@ -33,6 +33,11 @@ const npmCliPath = isWin
 	: path.join(path.dirname(path.dirname(process.execPath)), 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js');
 const localN8nCache = path.join(projectRoot, '.npm-n8n-cache-node24');
 const nodeMajorVersion = Number.parseInt(process.versions.node.split('.')[0], 10);
+const n8nRuntimeFolder = path.join(n8nUserFolder, '.n8n');
+const customNodeModulesFolder = path.join(n8nRuntimeFolder, 'custom', 'node_modules');
+const staleUpstreamPackageLink = path.join(customNodeModulesFolder, 'n8n-nodes-maibaoapi');
+const generatedTypesFolder = path.join(n8nUserFolder, '.cache', 'n8n', 'public', 'types');
+const generatedCustomIconsFolder = path.join(n8nUserFolder, '.cache', 'n8n', 'public', 'icons', 'CUSTOM');
 
 const sharedEnv = {
 	...process.env,
@@ -45,6 +50,40 @@ const processes = [];
 
 function ensureDir(dirPath) {
 	fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function removePathIfExists(targetPath, options = {}) {
+	if (!fs.existsSync(targetPath)) return;
+
+	try {
+		fs.rmSync(targetPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+	} catch (error) {
+		if (!options.required) {
+			console.warn(`[n8n Server] Could not clear cache path: ${targetPath}`);
+			console.warn(error.message);
+			return;
+		}
+
+		console.error([
+			`[n8n Server] Could not remove stale upstream package link: ${targetPath}`,
+			'',
+			'Stop any running npm run dev / n8n process, then remove this stale link and retry:',
+			`  Remove-Item -LiteralPath "${targetPath}" -Force`,
+			'',
+			'This old MaibaoAPI package makes n8n show upstream node and credential metadata instead of LmaoAPI.',
+		].join('\n'));
+		process.exit(1);
+	}
+}
+
+function resetGeneratedN8nCustomNodeCache() {
+	removePathIfExists(staleUpstreamPackageLink, { required: true });
+
+	for (const fileName of ['credentials.json', 'nodes.json', 'node-versions.json']) {
+		removePathIfExists(path.join(generatedTypesFolder, fileName));
+	}
+
+	removePathIfExists(generatedCustomIconsFolder);
 }
 
 function readInstalledN8nVersion() {
@@ -163,6 +202,7 @@ process.on('SIGTERM', () => shutdown(0));
 
 checkWindowsN8nPrereqs();
 bootstrapPersistentN8nInstall();
+resetGeneratedN8nCustomNodeCache();
 
 run('TypeScript + node link', nodeExecutable, [localN8nNodeCli, 'dev', '--external-n8n']);
 run('n8n Server', persistentN8nBinary, [], {

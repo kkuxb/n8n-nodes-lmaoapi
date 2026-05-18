@@ -1,4 +1,4 @@
-# n8n-nodes-LmaoAPI（V1.3.0 版本）
+# n8n-nodes-LmaoAPI（V1.3.3 版本）
 
 🚀 **告别见鬼的 HTTP Request 节点！** 在 n8n 中像原生节点一样傻瓜式调用 LmaoAPI 中的模型。
 
@@ -198,7 +198,7 @@
 在你的 n8n 根目录下运行：
 
 ```
-npm install n8n-nodes-LmaoAPI
+npm install n8n-nodes-lmaoapi
 ```
 
 或者在 n8n 设定页面的 **Community Nodes** 中搜索 `n8n-nodes-LmaoAPI` 进行安装。
@@ -215,21 +215,21 @@ npm run build
 npm run dev
 ```
 
-项目使用 Node.js `22.x`。
+项目使用 Node.js `24.x`。
 
 `npm run dev` 现在会自动复用项目本地固定版本的 n8n 开发运行时：
 
-- 首次运行会在仓库根目录生成 `.n8n-dev-server/` 并安装固定版本的 `n8n`
+- 首次运行会在仓库根目录生成 `.n8n-dev-server-node24/` 并安装固定版本的 `n8n`
 - 后续运行会直接复用这套本地运行时，不再每次临时下载 `n8n@latest`
-- 本地 npm 缓存会写入 `.npm-n8n-cache/`
+- 本地 npm 缓存会写入 `.npm-n8n-cache-node24/`
 
-如果你在 Windows 上遇到 sqlite3 / node-gyp / Python 相关报错，优先切到 Node.js 22，并将 npm 的 Python 指向 3.11 或 3.12。
+如果你在 Windows 上遇到 sqlite3 / node-gyp / Python 相关报错，优先确认当前 shell 使用 Node.js 24，并将 npm 的 Python 指向 3.11 或 3.12。
 
 ---
 
 ## 🛞 使用流程
 
-1. **添加凭证：** 在 n8n 凭证管理页面创建凭证，凭证搜索"LmaoAPI"。凭证只需要填入从 MaLmaoAPI台获取的 API Key 就行了，**Base URL 不要改**。
+1. **添加凭证：** 在 n8n 凭证管理页面创建凭证，凭证搜索"LmaoAPI"。凭证只需要填入从 LmaoAPI 后台获取的 API Key 就行了，**Base URL 不要改**。
 
 2. **添加节点：** 在工作流中添加节点时，可搜索"LmaoAPI"，即可找到本节点（找不到是因为你还没安装本社区节点）
 

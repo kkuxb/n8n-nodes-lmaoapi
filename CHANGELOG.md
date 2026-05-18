@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - 图片生成 README 重点突出 `GPT-Image-2` 的使用方式与能力
-- `npm run dev` 改为复用项目本地 `.n8n-dev-server/`，不再每次临时下载 n8n
+- `npm run dev` 改为复用项目本地 `.n8n-dev-server-node24/`，不再每次临时下载 n8n
 - `.gitignore` 补充本地开发缓存、规划目录与 API 参考资料目录
 
 ### Fixed
@@ -118,7 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 向量嵌入模式（Embeddings）
   - 支持 text-embedding-3-large 和 text-embedding-3-small
 - 跨节点 Binary 读取功能
-- API 端点: `https://api.maibao.chat/v1`
+- API 端点: `https://api.lmao.net.cn/v1`
 
 ### Technical
 
@@ -127,5 +127,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 完整的类型定义
 - 自动 Base64 转换
 
-[1.1.0]: https://github.com/kkuxb/n8n-nodes-maibaoapi/releases/tag/v1.1.0
-[1.0.0]: https://github.com/kkuxb/n8n-nodes-maibaoapi/releases/tag/v1.0.0
+[1.1.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.1.0
+[1.0.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.0.0

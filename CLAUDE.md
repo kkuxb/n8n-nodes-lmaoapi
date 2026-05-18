@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an n8n community node package that provides integration with MaibaoAPI (https://api.maibao.chat). It enables users to call AI models through n8n workflows without manually configuring HTTP Request nodes.
+This is an n8n community node package that provides integration with LmaoAPI (https://api.lmao.net.cn). It enables users to call AI models through n8n workflows without manually configuring HTTP Request nodes.
 
 **Key Features:**
 - Text generation with multimodal support (text + images)
@@ -59,8 +59,8 @@ npm run release
 ### API Integration
 
 **Base URLs:**
-- Standard API: `https://api.maibao.chat/v1`
-- Sora API: `https://api.maibao.chat` (v1 suffix removed)
+- Standard API: `https://api.lmao.net.cn/v1`
+- Sora API: `https://api.lmao.net.cn` (v1 suffix removed)
 
 **Endpoints:**
 - Text: `POST /v1/chat/completions`
