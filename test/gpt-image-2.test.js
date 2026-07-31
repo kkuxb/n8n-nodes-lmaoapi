@@ -27,7 +27,7 @@ test('无参考图时走文生图接口', () => {
 	assert.equal(request.endpoint, '/images/generations');
 	assert.equal(request.usesMultipart, false);
 	assert.deepEqual(request.body, {
-		model: 'gpt-image-2',
+		model: 'gpt-image-2-c',
 		prompt: '一只海边散步的水獭',
 		size: '2048x2048',
 		quality: 'medium',
@@ -88,7 +88,7 @@ test('图像编辑 multipart 使用 OpenAI 兼容的 image[] 文件字段', () =
 
 	const formData = buildGptImageMultipartFormData(request.body);
 
-	assert.equal(formData.model, 'gpt-image-2');
+	assert.equal(formData.model, 'gpt-image-2-c');
 	assert.equal(formData.prompt, '把这张图改成霓虹赛博朋克风格');
 	assert.equal(formData.images, undefined);
 	assert.equal(formData.image, undefined);
@@ -154,6 +154,15 @@ test('节点默认使用 GPT-Image-2 且模型选项排在第一位', () => {
 			{ name: '即梦 5.0', value: 'doubao-seedream-5-0-260128' },
 		],
 	);
+});
+
+test('文字生成默认使用 gpt-5.6-sol', () => {
+	const node = new MaibaoApi();
+	const modelIdProperty = node.description.properties.find(
+		(property) => property.name === 'modelId',
+	);
+
+	assert.equal(modelIdProperty.default, 'gpt-5.6-sol');
 });
 
 test('节点为 GPT-Image-2 提供官方支持的分辨率选项并将自定义放在最上方', () => {

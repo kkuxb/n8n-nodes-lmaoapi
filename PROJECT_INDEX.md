@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
 **Generated:** 2026-03-08
-**Version:** 1.3.3
+**Version:** 1.0.2
 **Type:** n8n Community Node Package
 
 ---
@@ -15,7 +15,7 @@ n8n-nodes-lmaoapi/
 ├── nodes/
 │   └── MaibaoApi/
 │       ├── MaibaoApi.node.ts       # Main node implementation (713 lines)
-│       └── maibaoapi.svg           # Node icon
+│       └── maibaoapi.png           # Node icon
 ├── dist/                           # Compiled output (published to npm)
 │   ├── credentials/
 │   ├── nodes/
@@ -104,7 +104,7 @@ n8n-nodes-lmaoapi/
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.3.3
+- **Version:** 1.0.2
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`

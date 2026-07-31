@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2026-07-31
+
+### Changed
+
+- 文字生成默认模型由 `gemini-3.1-pro-preview` 更新为 `gpt-5.6-sol`
+- `GPT-Image-2` 前台名称和选项值继续保持 `gpt-image-2`，实际 API 请求模型 ID 更新为 `gpt-image-2-c`
+- 所有 HTTP 请求的超时时间统一调整为 600 秒（10 分钟）
+
 ## [1.3.0] - 2026-04-22
 
 ### Added
@@ -20,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - 图片生成 README 重点突出 `GPT-Image-2` 的使用方式与能力
-- `npm run dev` 改为复用项目本地 `.n8n-dev-server-node24/`，不再每次临时下载 n8n
+- `npm run dev` 改为复用项目本地 `.n8n-dev-server/`，不再每次临时下载 n8n
 - `.gitignore` 补充本地开发缓存、规划目录与 API 参考资料目录
 
 ### Fixed
@@ -127,5 +135,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 完整的类型定义
 - 自动 Base64 转换
 
+[1.3.4]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.4
 [1.1.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.1.0
 [1.0.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.0.0

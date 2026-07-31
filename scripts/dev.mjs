@@ -85,7 +85,6 @@ function resetGeneratedN8nCustomNodeCache() {
 
 	removePathIfExists(generatedCustomIconsFolder);
 }
-
 function readInstalledN8nVersion() {
 	if (!fs.existsSync(persistentN8nPackageManifest)) return null;
 

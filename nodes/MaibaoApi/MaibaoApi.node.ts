@@ -1,4 +1,4 @@
-/* eslint-disable @n8n/community-nodes/no-http-request-with-manual-auth, n8n-nodes-base/node-filename-against-convention */
+/* eslint-disable n8n-nodes-base/node-filename-against-convention */
 import {
 	IExecuteFunctions,
 	INodeExecutionData,
@@ -18,6 +18,8 @@ import {
 	GptImageQuality,
 	resolveGptImageSize,
 } from './GptImageUtils';
+
+const REQUEST_TIMEOUT_MS = 600000;
 
 function debugLog(_scope: string, _details: Record<string, unknown>): void {
 	void _scope;
@@ -302,6 +304,7 @@ async function downloadImagesFromUrls(
 				url,
 				encoding: 'arraybuffer',
 				returnFullResponse: true,
+				timeout: REQUEST_TIMEOUT_MS,
 			});
 
 			const buffer = Buffer.from(response.body as ArrayBuffer);
@@ -525,7 +528,7 @@ export class MaibaoApi implements INodeType {
 				name: 'modelId',
 				type: 'string',
 				displayOptions: { show: { mode: ['text'] } },
-				default: 'gemini-3.1-pro-preview',
+				default: 'gpt-5.6-sol',
 				required: true,
 			},
 			{
@@ -951,6 +954,7 @@ export class MaibaoApi implements INodeType {
 							]
 						},
 						json: true,
+						timeout: REQUEST_TIMEOUT_MS,
 					});
 					returnData.push({ json: responseData });
 
@@ -1004,6 +1008,7 @@ export class MaibaoApi implements INodeType {
 							headers: { Authorization: `Bearer ${credentials.apiKey}` },
 							body: { contents: [{ role: 'user', parts }], generationConfig },
 							json: true,
+							timeout: REQUEST_TIMEOUT_MS,
 						});
 						const b64 = res.candidates?.[0]?.content?.parts?.find((p: Record<string, unknown>) => p.inlineData)?.inlineData.data;
 						if (b64) {
@@ -1065,7 +1070,7 @@ export class MaibaoApi implements INodeType {
 								url: `${rawBaseUrl}${requestConfig.endpoint}`,
 								headers: { Authorization: `Bearer ${credentials.apiKey}` },
 								body: buildNativeMultipartBody(this, buildGptImageMultipartFormData(requestConfig.body)) as never,
-								timeout: 600000,
+								timeout: REQUEST_TIMEOUT_MS,
 							})) as ImagesApiResponse
 							: (await this.helpers.httpRequest({
 								method: 'POST',
@@ -1073,7 +1078,7 @@ export class MaibaoApi implements INodeType {
 								headers: { Authorization: `Bearer ${credentials.apiKey}` },
 								body: requestConfig.body,
 								json: true,
-								timeout: 600000,
+								timeout: REQUEST_TIMEOUT_MS,
 							})) as ImagesApiResponse;
 						if (responseData.data?.[0]?.b64_json) {
 							const binaryOutput = await this.helpers.prepareBinaryData(
@@ -1123,6 +1128,7 @@ export class MaibaoApi implements INodeType {
 							headers: { Authorization: `Bearer ${credentials.apiKey}` },
 							body: { model: imageModel, prompt: userPrompt, size: rawSize, n: 1, response_format: 'b64_json', image: images.length === 1 ? images[0] : (images.length > 1 ? images : undefined), watermark: true },
 							json: true,
+							timeout: REQUEST_TIMEOUT_MS,
 						});
 						if (responseData.data?.[0]?.b64_json) {
 							const binaryOutput = await this.helpers.prepareBinaryData(Buffer.from(responseData.data[0].b64_json, 'base64'), `doubao_image.png`, 'image/png');
@@ -1183,6 +1189,7 @@ export class MaibaoApi implements INodeType {
 							headers: { Authorization: `${credentials.apiKey}` },
 							formData,
 							json: true,
+							timeout: REQUEST_TIMEOUT_MS,
 						});
 						returnData.push({ json: res });
 
@@ -1195,6 +1202,7 @@ export class MaibaoApi implements INodeType {
 							headers: { Authorization: `${credentials.apiKey}` },
 							body: { prompt },
 							json: true,
+							timeout: REQUEST_TIMEOUT_MS,
 						});
 						returnData.push({ json: res });
 
@@ -1210,6 +1218,7 @@ export class MaibaoApi implements INodeType {
 									method: 'GET',
 									url: `${soraBaseUrl}/v1/videos/${video_id}`,
 									headers: { Authorization: `${credentials.apiKey}` },
+									timeout: REQUEST_TIMEOUT_MS,
 								});
 								if (['completed', 'failed'].includes(res.status)) break;
 								// eslint-disable-next-line @n8n/community-nodes/no-restricted-globals
@@ -1220,6 +1229,7 @@ export class MaibaoApi implements INodeType {
 								method: 'GET',
 								url: `${soraBaseUrl}/v1/videos/${video_id}`,
 								headers: { Authorization: `${credentials.apiKey}` },
+								timeout: REQUEST_TIMEOUT_MS,
 							});
 						}
 						returnData.push({ json: res });
@@ -1233,7 +1243,7 @@ export class MaibaoApi implements INodeType {
 							qs: { variant: 'video' },
 							encoding: 'arraybuffer',
 							returnFullResponse: true,
-							timeout: 300000,
+							timeout: REQUEST_TIMEOUT_MS,
 						});
 						const binaryOutput = await this.helpers.prepareBinaryData(
 							Buffer.from(response.body as ArrayBuffer), 
@@ -1247,6 +1257,7 @@ export class MaibaoApi implements INodeType {
 							method: 'GET',
 							url: `${soraBaseUrl}/v1/videos`,
 							headers: { Authorization: `${credentials.apiKey}` },
+							timeout: REQUEST_TIMEOUT_MS,
 						});
 						returnData.push({ json: res });
 					}
@@ -1306,7 +1317,7 @@ export class MaibaoApi implements INodeType {
 						},
 						formData,
 						json: true,
-						timeout: 600000,
+						timeout: REQUEST_TIMEOUT_MS,
 					});
 
 					// 构建输出
@@ -1355,6 +1366,7 @@ export class MaibaoApi implements INodeType {
 						headers: { Authorization: `Bearer ${credentials.apiKey}` },
 						body: { model, input },
 						json: true,
+						timeout: REQUEST_TIMEOUT_MS,
 					});
 					returnData.push({ json: responseData });
 				}

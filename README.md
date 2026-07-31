@@ -1,4 +1,4 @@
-# n8n-nodes-LmaoAPI（V1.3.3 版本）
+# n8n-nodes-lmaoapi（V1.3.4 版本）
 
 🚀 **告别见鬼的 HTTP Request 节点！** 在 n8n 中像原生节点一样傻瓜式调用 LmaoAPI 中的模型。
 
@@ -6,7 +6,7 @@
 
 ## 🆕 重点新增：GPT-Image-2 生图支持
 
-现在节点已经正式支持 `gpt-image-2`，而且不是只有简单的文生图：
+现在节点已经正式支持前台显示为 `gpt-image-2` 的图像模型，而且不是只有简单的文生图。实际 API 请求会自动使用模型 ID `gpt-image-2-c`：
 
 - **文生图**：直接输入 Prompt 生成图片
 - **图生图**：直接读取当前节点的 Binary 图片做参考图
@@ -44,7 +44,7 @@
 
 ### 1. 文字生成模式
 
-- **模型自定义**：支持手动指定模型 ID（例如 `gemini-3.1-pro-preview`、`gemini-3-flash` 等）。
+- **模型自定义**：默认使用 `gpt-5.6-sol`，也支持手动指定其他模型 ID。
 
 - **双模态支持**：支持发送 **文字 + 图片** 的组合。
 
@@ -84,6 +84,8 @@
   | **Gemini-3-Pro-Image**     | `gemini-3-pro-image-preview`     | ✅ 支持 (1K/2K/4K)            | ✅ 支持 (9种比例)                   |
   | **GPT-Image-2**            | `gpt-image-2`                    | ✅ 支持 (`auto`/1024方图/横图/竖图) | ❌ 不支持（改为背景/质量/输出格式）           |
   | **即梦 5.0**                 | `doubao-seedream-5-0-260128`     | ✅ 支持 (2K/3K)               | ❌ 不支持                         |
+
+> `GPT-Image-2` 在节点前台保持显示为 `gpt-image-2`，提交 API 请求时模型 ID 会自动映射为 `gpt-image-2-c`。
 
 **推荐用法：**
 
@@ -169,6 +171,12 @@
 
 ## 🆕 版本更新记录
 
+### v1.3.4 (2026-07-31)
+
+- **文字生成**：默认模型由 `gemini-3.1-pro-preview` 更新为 `gpt-5.6-sol`
+- **图片生成**：前台继续显示 `gpt-image-2`，实际请求模型 ID 更新为 `gpt-image-2-c`
+- **请求超时**：所有模式统一调整为 600 秒（10 分钟）
+
 ### v1.1.0 (2026-03-08)
 
 - **新增功能**：音频转文本模式 (Whisper-1)
@@ -201,7 +209,7 @@
 npm install n8n-nodes-lmaoapi
 ```
 
-或者在 n8n 设定页面的 **Community Nodes** 中搜索 `n8n-nodes-LmaoAPI` 进行安装。
+或者在 n8n 设定页面的 **Community Nodes** 中搜索 `n8n-nodes-lmaoapi` 进行安装。
 
 （个人推荐下面这种方法，因为安装方法是 Gemini 自己脑补写的，虽然看起来是对的，但我没用过命令行安装的方式）
 

@@ -1,0 +1,33 @@
+{
+	"upstream": {
+		"url": "https://github.com/kkuxb/n8n-nodes-maibaoapi.git",
+		"branch": "master"
+	},
+	"brand": {
+		"packageName": "n8n-nodes-lmaoapi",
+		"displayName": "LmaoAPI",
+		"credentialName": "lmaoApi",
+		"apiOrigin": "https://api.lmao.net.cn",
+		"apiBaseUrl": "https://api.lmao.net.cn/v1",
+		"homepage": "https://github.com/kkuxb/n8n-nodes-lmaoapi#readme",
+		"repository": "git+https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
+		"repositoryWeb": "https://github.com/kkuxb/n8n-nodes-lmaoapi",
+		"issues": "https://github.com/kkuxb/n8n-nodes-lmaoapi/issues",
+		"nodeEngine": "24.x",
+		"packageManager": "npm@11.12.1"
+	},
+	"localOwnedFiles": [
+		".nvmrc",
+		"UPSTREAM_SYNC.md",
+		"credentials/maibaoapi.svg",
+		"nodes/MaibaoApi/maibaoapi.svg",
+		"scripts/sync-upstream.mjs",
+		"scripts/upstream-brand.json",
+		"scripts/upstream-sync-lib.mjs",
+		"test/upstream-sync.test.js"
+	],
+	"retiredPaths": [
+		"credentials/maibaoapi.png",
+		"nodes/MaibaoApi/maibaoapi.png"
+	]
+}

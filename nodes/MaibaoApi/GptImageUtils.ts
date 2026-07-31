@@ -99,7 +99,7 @@ export function buildGptImageRequest(
 	}
 
 	const sharedBody: Record<string, unknown> = {
-		model,
+		model: model === 'gpt-image-2' ? 'gpt-image-2-c' : model,
 		prompt: options.prompt,
 		size: options.size,
 		quality: options.quality,
