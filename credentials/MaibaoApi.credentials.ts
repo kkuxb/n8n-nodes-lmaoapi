@@ -16,15 +16,15 @@ export class MaibaoApi implements ICredentialType {
 		},
 		{
 			displayName: 'Base URL',
-			name: 'baseUrl',
+			name: 'lmaoBaseUrl',
 			type: 'string',
-			default: 'https://api.lmao.net.cn/v1',
+			default: 'https://api.lmao.net.cn',
 			description: '高级覆盖项。默认使用 LmaoAPI 官方地址，仅在自定义兼容网关时修改。',
 		},
 	];
 	test: ICredentialTestRequest = {
 		request: {
-			url: '={{(($credentials.baseUrl || "").replace(/\\/+$/, "").endsWith("/v1") ? ($credentials.baseUrl || "").replace(/\\/+$/, "") : ($credentials.baseUrl || "").replace(/\\/+$/, "") + "/v1") + "/models"}}',
+			url: '={{(($credentials.lmaoBaseUrl || "").replace(/\\/+$/, "").endsWith("/v1") ? ($credentials.lmaoBaseUrl || "").replace(/\\/+$/, "") : ($credentials.lmaoBaseUrl || "").replace(/\\/+$/, "") + "/v1") + "/models"}}',
 			headers: {
 				Authorization: '=Bearer {{$credentials.apiKey}}',
 			},

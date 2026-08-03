@@ -95,7 +95,7 @@ n8n-nodes-lmaoapi/
 **Properties:**
 
 - `apiKey` - API authentication key (password field)
-- `baseUrl` - API base URL (default: `https://api.lmao.net.cn/v1`)
+- `lmaoBaseUrl` - API base URL (default: `https://api.lmao.net.cn`)
 
 ---
 

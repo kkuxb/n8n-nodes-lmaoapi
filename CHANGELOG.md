@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2026-08-03
+
+### Added
+
+- 音频转文本的句级时间戳输出新增 `time-text` 字符串字段，位于 `sentences` 之前，可直接拖拽到后续节点使用
+- 保留原有 `sentences` 结构化数组，确保现有工作流兼容
+- 文字、图像和语音模式的 Binary 属性名默认值统一为 `data,data0,data1,data2,data3,data4,data5`
+
+### Changed
+
+- 项目版本更新为 `1.3.5`，同步更新包元数据、节点简介和测试脚本
+- 重写 README，使公开模式、模型参数、Binary 来源、本地开发环境和音频输出说明与当前代码一致
+
+### Fixed
+
+- 修复旧版凭证复用上游 `baseUrl` 导致 API 地址显示错误的问题；LmaoAPI 凭证现在默认使用 `https://api.lmao.net.cn`
 ## [1.3.4] - 2026-07-31
 
 ### Changed
@@ -135,6 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 完整的类型定义
 - 自动 Base64 转换
 
+[1.3.5]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.5
 [1.3.4]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.4
 [1.1.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.1.0
 [1.0.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.0.0

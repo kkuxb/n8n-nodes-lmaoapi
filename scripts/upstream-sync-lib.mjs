@@ -96,6 +96,24 @@ export function transformBrandDocument(content, config) {
 		.replaceAll('麦包平台', '龙猫平台');
 }
 
+export function transformChangelog(content, config) {
+	let output = transformBrandDocument(content, config);
+	for (const patch of config.changelogPatches ?? []) {
+		const missingEntries = patch.entries.filter((entry) => !output.includes(entry));
+		if (missingEntries.length === 0) continue;
+		const versionHeader = `## [${patch.version}]`;
+		const versionStart = output.indexOf(versionHeader);
+		if (versionStart === -1) {
+			throw new Error(`Missing changelog version for brand patch: ${patch.version}`);
+		}
+		const nextVersionStart = output.indexOf('\n## [', versionStart + versionHeader.length);
+		const insertAt = nextVersionStart === -1 ? output.length : nextVersionStart;
+		const addition = `\n### ${patch.section}\n\n${missingEntries.map((entry) => `- ${entry}`).join('\n')}\n`;
+		output = `${output.slice(0, insertAt).trimEnd()}\n${addition}${output.slice(insertAt).replace(/^\n/, '')}`;
+	}
+	return output;
+}
+
 function transformKeyword(keyword, config) {
 	if (keyword === 'maibaoapi') return 'lmaoapi';
 	if (keyword === 'maibao') return 'lmao';
@@ -150,6 +168,10 @@ export function transformNodeSource(content, config) {
 		["icon: 'file:maibaoapi.png'", 'node icon'],
 		["credentials: [{ name: 'maibaoApi', required: true }]", 'node credential declaration'],
 		["this.getCredentials('maibaoApi')", 'node credential lookup'],
+		[
+			"\t\tconst rawBaseUrl = (credentials.baseUrl as string).replace(/\\/$/, '');\n\t\tconst soraBaseUrl = rawBaseUrl.replace(/\\/v1$/, '');",
+			'node Base URL initialization',
+		],
 	]) {
 		if (!output.includes(anchor)) {
 			throw new Error(`Missing required upstream anchor: ${label}`);
@@ -161,6 +183,20 @@ export function transformNodeSource(content, config) {
 		.replaceAll("'maibaoApi'", `'${brand.credentialName}'`)
 		.replaceAll('file:maibaoapi.png', 'file:maibaoapi.svg')
 		.replaceAll('https://api.maibao.chat', brand.apiOrigin);
+	output = output.replace(
+		"\t\tconst rawBaseUrl = (credentials.baseUrl as string).replace(/\\/$/, '');\n\t\tconst soraBaseUrl = rawBaseUrl.replace(/\\/v1$/, '');",
+		[
+			`\t\tconst configuredBaseUrl = (credentials.${brand.credentialBaseUrlName} as string | undefined)?.trim();`,
+			'\t\tconst legacyBaseUrl = (credentials.baseUrl as string | undefined)?.trim();',
+			'\t\tconst legacyCustomBaseUrl =',
+			'\t\t\tlegacyBaseUrl && !/^https:\\/\\/api\\.maibao\\.chat(?:\\/v1)?\\/?$/i.test(legacyBaseUrl)',
+			'\t\t\t\t? legacyBaseUrl',
+			'\t\t\t\t: undefined;',
+			`\t\tconst baseUrl = (configuredBaseUrl || legacyCustomBaseUrl || '${brand.apiOrigin}').replace(/\\/+$/, '');`,
+			"\t\tconst rawBaseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;",
+			"\t\tconst soraBaseUrl = rawBaseUrl.replace(/\\/v1$/, '');",
+		].join('\n'),
+	);
 
 	if (!output.startsWith('/* eslint-disable')) {
 		output = `/* eslint-disable n8n-nodes-base/node-filename-against-convention */\n${output}`;
@@ -174,6 +210,7 @@ export function transformCredentialSource(content, config) {
 	for (const [anchor, label] of [
 		["name = 'maibaoApi';", 'credential internal name'],
 		["displayName = 'MaibaoAPI API';", 'credential display name'],
+		["name: 'baseUrl',", 'credential Base URL property name'],
 		["type: 'hidden',", 'credential Base URL type'],
 		["default: 'https://api.maibao.chat/v1',", 'credential Base URL default'],
 		["baseURL: '={{$credentials.baseUrl}}',", 'credential test base URL'],
@@ -189,17 +226,18 @@ export function transformCredentialSource(content, config) {
 		.replaceAll("displayName = 'MaibaoAPI API';", `displayName = '${brand.displayName} API';`)
 		.replaceAll('file:maibaoapi.png', 'file:maibaoapi.svg')
 		.replaceAll("documentationUrl = 'https://maibaoapi.apifox.cn/';", `documentationUrl = '${brand.apiOrigin}';`)
+		.replaceAll("name: 'baseUrl',", `name: '${brand.credentialBaseUrlName}',`)
 		.replaceAll("type: 'hidden',", "type: 'string',")
 		.replaceAll(
 			"default: 'https://api.maibao.chat/v1',",
 			[
-				`default: '${brand.apiBaseUrl}',`,
+				`default: '${brand.apiOrigin}',`,
 				`\t\t\tdescription: '高级覆盖项。默认使用 ${brand.displayName} 官方地址，仅在自定义兼容网关时修改。',`,
 			].join('\n'),
 		)
 		.replaceAll(
 			"\t\t\tbaseURL: '={{$credentials.baseUrl}}',\n\t\t\turl: '/models',",
-			`\t\t\turl: '={{(($credentials.baseUrl || "").replace(/\\\\\/+$/, "").endsWith("/v1") ? ($credentials.baseUrl || "").replace(/\\\\\/+$/, "") : ($credentials.baseUrl || "").replace(/\\\\\/+$/, "") + "/v1") + "/models"}}',`,
+			`\t\t\turl: '={{(($credentials.${brand.credentialBaseUrlName} || "").replace(/\\\\\/+$/, "").endsWith("/v1") ? ($credentials.${brand.credentialBaseUrlName} || "").replace(/\\\\\/+$/, "") : ($credentials.${brand.credentialBaseUrlName} || "").replace(/\\\\\/+$/, "") + "/v1") + "/models"}}',`,
 		);
 	return output;
 }
@@ -379,10 +417,21 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		transformCredentialSource(fs.readFileSync(credentialPath, 'utf8'), config),
 	);
 
-	for (const relativePath of ['CHANGELOG.md', 'CLAUDE.md', 'PROJECT_INDEX.md']) {
+	for (const relativePath of [
+		'CHANGELOG.md',
+		'CLAUDE.md',
+		'PROJECT_INDEX.md',
+		'test_timestamp_granularities.bat',
+	]) {
 		const fullPath = path.join(candidateRoot, relativePath);
 		if (fs.existsSync(fullPath)) {
-			fs.writeFileSync(fullPath, transformBrandDocument(fs.readFileSync(fullPath, 'utf8'), config));
+			const content = fs.readFileSync(fullPath, 'utf8');
+			fs.writeFileSync(
+				fullPath,
+				relativePath === 'CHANGELOG.md'
+					? transformChangelog(content, config)
+					: transformBrandDocument(content, config),
+			);
 		}
 	}
 	const readmePath = path.join(candidateRoot, 'README.md');
@@ -396,8 +445,23 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		projectIndex.version = brandedPackage.version;
 		projectIndex.projectName = config.brand.packageName;
 		projectIndex.repository = config.brand.repository.replace(/^git\+/, '');
+		if (Array.isArray(projectIndex.credentials?.type?.properties)) {
+			projectIndex.credentials.type.properties = projectIndex.credentials.type.properties.map((property) =>
+				property === 'baseUrl' ? config.brand.credentialBaseUrlName : property,
+			);
+		}
 		projectIndex.keywords = projectIndex.keywords?.map((keyword) => transformKeyword(keyword, config));
 		writeJson(projectIndexPath, projectIndex, 2);
+	}
+	const projectIndexMarkdownPath = path.join(candidateRoot, 'PROJECT_INDEX.md');
+	if (fs.existsSync(projectIndexMarkdownPath)) {
+		const projectIndexMarkdown = fs
+			.readFileSync(projectIndexMarkdownPath, 'utf8')
+			.replace(
+				/`baseUrl` - API base URL \(default: `https:\/\/api\.lmao\.net\.cn\/v1`\)/,
+				`\`${config.brand.credentialBaseUrlName}\` - API base URL (default: \`${config.brand.apiOrigin}\`)`,
+			);
+		fs.writeFileSync(projectIndexMarkdownPath, projectIndexMarkdown);
 	}
 
 	const gitignorePath = path.join(candidateRoot, '.gitignore');
@@ -444,7 +508,7 @@ export function assertCandidateBranding(candidateRoot, config, expectedVersion) 
 		'package.json',
 		'package-lock.json',
 		'credentials/MaibaoApi.credentials.ts',
-		'nodes/MaibaoApi/MaibaoApi.node.ts',
+		'test_timestamp_granularities.bat',
 	];
 	const forbidden = /MaibaoAPI|maibaoApi|api\.maibao\.chat|n8n-nodes-maibaoapi/;
 	for (const relativePath of brandSurfaces) {
@@ -452,6 +516,29 @@ export function assertCandidateBranding(candidateRoot, config, expectedVersion) 
 		if (forbidden.test(content)) {
 			throw new Error(`Upstream brand leaked into ${relativePath}`);
 		}
+	}
+	const nodeSource = fs.readFileSync(
+		resolveManagedPath(candidateRoot, 'nodes/MaibaoApi/MaibaoApi.node.ts'),
+		'utf8',
+	);
+	if (/MaibaoAPI|maibaoApi|n8n-nodes-maibaoapi/.test(nodeSource)) {
+		throw new Error('Upstream brand leaked into nodes/MaibaoApi/MaibaoApi.node.ts');
+	}
+	if (
+		!nodeSource.includes(`credentials.${config.brand.credentialBaseUrlName}`) ||
+		!nodeSource.includes(`'${config.brand.apiOrigin}'`)
+	) {
+		throw new Error('Node Base URL migration invariant failed');
+	}
+	const credentialSource = fs.readFileSync(
+		resolveManagedPath(candidateRoot, 'credentials/MaibaoApi.credentials.ts'),
+		'utf8',
+	);
+	if (
+		!credentialSource.includes(`name: '${config.brand.credentialBaseUrlName}'`) ||
+		!credentialSource.includes(`default: '${config.brand.apiOrigin}'`)
+	) {
+		throw new Error('Credential Base URL invariant failed');
 	}
 
 	const changelog = fs.readFileSync(path.join(candidateRoot, 'CHANGELOG.md'), 'utf8');

@@ -2,8 +2,8 @@
   "upstream": {
     "url": "https://github.com/kkuxb/n8n-nodes-maibaoapi.git",
     "branch": "master",
-    "commit": "9020c82a15be64e8ead4f109f19533991d43c336",
-    "version": "1.3.4"
+    "commit": "eb41e73b59f54e725cfb38958815ce590aa9d5fc",
+    "version": "1.3.5"
   },
   "managedPaths": [
     ".claude/settings.local.json",
@@ -40,6 +40,7 @@
     "scripts/sync-upstream.mjs",
     "scripts/upstream-brand.json",
     "scripts/upstream-sync-lib.mjs",
+    "test/audio-transcription.test.js",
     "test/dev-script-config.test.js",
     "test/gpt-image-2.test.js",
     "test/image-generation-config.test.js",
