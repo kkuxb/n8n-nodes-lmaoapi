@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
 **Generated:** 2026-03-08
-**Version:** 1.0.2
+**Version:** 1.3.6
 **Type:** n8n Community Node Package
 
 ---
@@ -104,7 +104,7 @@ n8n-nodes-lmaoapi/
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.0.2
+- **Version:** 1.3.6
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`
@@ -147,8 +147,8 @@ n8n-nodes-lmaoapi/
 
 ### CHANGELOG.md (1.3KB)
 
-- **Latest:** v1.0.0 (2026-03-06)
-- **Changes:** Migration from DeerAPI to LmaoAPI, model upgrades
+- **Latest:** v1.3.6 (2026-08-21)
+- **Changes:** Preserve n8n item linking for all node outputs
 
 ### LICENSE.md (1KB)
 
@@ -302,9 +302,9 @@ Or install via n8n Community Nodes UI.
 
 ## 🔄 Version History
 
-### v1.0.2 (Current)
+### v1.3.6 (Current)
 
-- Latest stable release
+- Preserves n8n item linking for all success and `continueOnFail` outputs
 
 ### v1.0.0 (2026-03-06)
 

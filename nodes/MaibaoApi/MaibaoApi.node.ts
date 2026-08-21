@@ -27,6 +27,17 @@ function debugLog(_scope: string, _details: Record<string, unknown>): void {
 	// Disabled because n8n community nodes lint forbids direct process.env access.
 }
 
+export function pushExecutionData(
+	returnData: INodeExecutionData[],
+	itemIndex: number,
+	output: INodeExecutionData,
+): void {
+	returnData.push({
+		...output,
+		pairedItem: { item: itemIndex },
+	});
+}
+
 // 图片数据接口
 interface ImageData {
 	base64: string;
@@ -973,7 +984,7 @@ export class MaibaoApi implements INodeType {
 						json: true,
 						timeout: REQUEST_TIMEOUT_MS,
 					});
-					returnData.push({ json: responseData });
+					pushExecutionData(returnData, i, { json: responseData });
 
 				} else if (mode === 'image') {
 					const userPrompt = this.getNodeParameter('userPrompt', i) as string;
@@ -1031,7 +1042,10 @@ export class MaibaoApi implements INodeType {
 						if (b64) {
 							const outputFileName = imageModel === 'gemini-3.1-flash-image-preview' ? 'gemini_flash_image.png' : 'gemini_image.png';
 							const binaryOutput = await this.helpers.prepareBinaryData(Buffer.from(b64, 'base64'), outputFileName, 'image/png');
-							returnData.push({ json: { status: 'success' }, binary: { data: binaryOutput } });
+							pushExecutionData(returnData, i, {
+								json: { status: 'success' },
+								binary: { data: binaryOutput },
+							});
 						} else throw new NodeOperationError(this.getNode(), 'Gemini 接口未返回图像。');
 
 					} else if (isGptImageModel(imageModel)) {
@@ -1103,7 +1117,7 @@ export class MaibaoApi implements INodeType {
 								requestConfig.outputFileName,
 								requestConfig.outputMimeType,
 							);
-							returnData.push({
+							pushExecutionData(returnData, i, {
 								json: {
 									status: 'success',
 									model: imageModel,
@@ -1149,7 +1163,10 @@ export class MaibaoApi implements INodeType {
 						});
 						if (responseData.data?.[0]?.b64_json) {
 							const binaryOutput = await this.helpers.prepareBinaryData(Buffer.from(responseData.data[0].b64_json, 'base64'), `doubao_image.png`, 'image/png');
-							returnData.push({ json: { status: 'success' }, binary: { data: binaryOutput } });
+							pushExecutionData(returnData, i, {
+								json: { status: 'success' },
+								binary: { data: binaryOutput },
+							});
 						} else throw new NodeOperationError(this.getNode(), '即梦接口未返回图像。');
 					}
 
@@ -1208,7 +1225,7 @@ export class MaibaoApi implements INodeType {
 							json: true,
 							timeout: REQUEST_TIMEOUT_MS,
 						});
-						returnData.push({ json: res });
+						pushExecutionData(returnData, i, { json: res });
 
 					} else if (operation === 'remix') {
 						const video_id = this.getNodeParameter('videoId', i) as string;
@@ -1221,7 +1238,7 @@ export class MaibaoApi implements INodeType {
 							json: true,
 							timeout: REQUEST_TIMEOUT_MS,
 						});
-						returnData.push({ json: res });
+						pushExecutionData(returnData, i, { json: res });
 
 					} else if (operation === 'retrieve') {
 						const video_id = this.getNodeParameter('videoId', i) as string;
@@ -1249,7 +1266,7 @@ export class MaibaoApi implements INodeType {
 								timeout: REQUEST_TIMEOUT_MS,
 							});
 						}
-						returnData.push({ json: res });
+						pushExecutionData(returnData, i, { json: res });
 
 					} else if (operation === 'download') {
 						const video_id = this.getNodeParameter('videoId', i) as string;
@@ -1267,7 +1284,10 @@ export class MaibaoApi implements INodeType {
 							'sora_video.mp4',
 							'video/mp4'
 						);
-						returnData.push({ json: { status: 'success' }, binary: { data: binaryOutput } });
+						pushExecutionData(returnData, i, {
+							json: { status: 'success' },
+							binary: { data: binaryOutput },
+						});
 
 					} else if (operation === 'list') {
 						const res = await this.helpers.httpRequest({
@@ -1276,7 +1296,7 @@ export class MaibaoApi implements INodeType {
 							headers: { Authorization: `${credentials.apiKey}` },
 							timeout: REQUEST_TIMEOUT_MS,
 						});
-						returnData.push({ json: res });
+						pushExecutionData(returnData, i, { json: res });
 					}
 				}
 
@@ -1340,7 +1360,7 @@ export class MaibaoApi implements INodeType {
 					// 构建输出
 					if (responseFormat === 'text') {
 						// 纯文本格式 - API 返回字符串
-						returnData.push({
+						pushExecutionData(returnData, i, {
 							json: {
 								text: responseData,
 								_metadata: {
@@ -1357,7 +1377,7 @@ export class MaibaoApi implements INodeType {
 						// 将词级别时间戳转换为句级别时间戳
 						const convertedData = convertWordsToSentences(responseData);
 
-						returnData.push({
+						pushExecutionData(returnData, i, {
 							json: {
 								...convertedData,
 								_metadata: {
@@ -1385,7 +1405,7 @@ export class MaibaoApi implements INodeType {
 						json: true,
 						timeout: REQUEST_TIMEOUT_MS,
 					});
-					returnData.push({ json: responseData });
+					pushExecutionData(returnData, i, { json: responseData });
 				}
 			} catch (error) {
 				const errorObject = error as {
@@ -1408,7 +1428,10 @@ export class MaibaoApi implements INodeType {
 						? errorObject.response.body.slice(0, 500)
 						: errorObject?.response?.body ?? null,
 				});
-				if (this.continueOnFail()) { returnData.push({ json: { error: error.message } }); continue; }
+				if (this.continueOnFail()) {
+					pushExecutionData(returnData, i, { json: { error: error.message } });
+					continue;
+				}
 				throw new NodeOperationError(this.getNode(), error);
 			}
 		}

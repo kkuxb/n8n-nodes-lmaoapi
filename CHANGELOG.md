@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.3.6] - 2026-08-21
+
+### Fixed
+
+- 为所有成功输出和 `continueOnFail` 输出保留 n8n `pairedItem` 关联，修复多 item
+  工作流中拖拽生成的 `$('Node').item` 表达式无法追溯上游数据的问题
+
+### Changed
+
+- 新增 item 关联回归测试，并将公开文档与包元数据同步更新至 `1.3.6`
+
 ## [1.3.5] - 2026-08-03
 
 ### Added
@@ -151,6 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 完整的类型定义
 - 自动 Base64 转换
 
+[1.3.6]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.6
 [1.3.5]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.5
 [1.3.4]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.4
 [1.1.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.1.0
