@@ -5,7 +5,6 @@ const { buildGeminiGenerationConfig } = require('../dist/nodes/MaibaoApi/MaibaoA
 
 test('Nano Banana 2 forwards selected image size in Gemini generation config', () => {
 	const generationConfig = buildGeminiGenerationConfig(
-		'gemini-3.1-flash-image-preview',
 		'16:9',
 		'4K',
 	);
@@ -19,8 +18,8 @@ test('Nano Banana 2 forwards selected image size in Gemini generation config', (
 	});
 });
 
-test('Nano Banana 1 Pro keeps forwarding selected image size in Gemini generation config', () => {
-	const generationConfig = buildGeminiGenerationConfig('gemini-3-pro-image-preview', '1:1', '2K');
+test('Nano Banana 2 keeps forwarding square 2K generation config', () => {
+	const generationConfig = buildGeminiGenerationConfig('1:1', '2K');
 
 	assert.deepEqual(generationConfig, {
 		responseModalities: ['IMAGE'],

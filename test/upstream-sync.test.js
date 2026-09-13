@@ -24,7 +24,7 @@ const upstreamNode = `export class MaibaoApi {
 	description = {
 		displayName: 'MaibaoAPI',
 		name: 'maibaoApi',
-		icon: 'file:maibaoapi.png',
+		icon: 'file:maibaoapi.svg',
 		description: '调用 MaibaoAPI',
 		defaults: { name: 'MaibaoAPI' },
 		credentials: [{ name: 'maibaoApi', required: true }],
@@ -46,8 +46,12 @@ const upstreamCredential = `export class MaibaoApi {
 		{
 			displayName: 'Base URL',
 			name: 'baseUrl',
-			type: 'hidden',
-			default: 'https://api.maibao.chat/v1',
+			type: 'options',
+			options: [
+				{ name: 'https://api.maibao.chat', value: 'https://api.maibao.chat/v1', },
+				{ name: 'https://ai.maibao.chat', value: 'https://ai.maibao.chat/v1', },
+			],
+			default: 'https://ai.maibao.chat/v1',
 		},
 	];
 	test = {
@@ -103,15 +107,15 @@ test('node and credential transforms preserve LmaoAPI names, SVG logos, and conf
 	assert.match(node, /getCredentials\('lmaoApi'\)/);
 	assert.match(node, /credentials\.lmaoBaseUrl/);
 	assert.match(node, /legacyBaseUrl/);
-	assert.ok(node.includes('api\\.maibao\\.chat'));
+	assert.ok(node.includes('(?:api|ai)\\.maibao\\.chat'));
 	assert.match(node, /baseUrl\.endsWith\('\/v1'\)/);
 	assert.match(credential, /name: 'lmaoBaseUrl'/);
-	assert.match(credential, /type: 'string'/);
-	assert.match(credential, /default: 'https:\/\/api\.lmao\.net\.cn'/);
-	assert.doesNotMatch(credential, /default: 'https:\/\/api\.lmao\.net\.cn\/v1'/);
+	assert.match(credential, /type: 'options'/);
+	assert.match(credential, /default: 'https:\/\/ai\.lmao\.net\.cn\/v1'/);
+	assert.match(credential, /value: 'https:\/\/api\.lmao\.net\.cn\/v1'/);
+	assert.match(credential, /value: 'https:\/\/ai\.lmao\.net\.cn\/v1'/);
 	assert.match(credential, /\$credentials\.lmaoBaseUrl/);
-	assert.match(credential, /高级覆盖项/);
-	assert.doesNotMatch(credential, /MaibaoAPI|maibaoApi|api\.maibao\.chat/);
+	assert.doesNotMatch(credential, /MaibaoAPI|maibaoApi|(?:api|ai)\.maibao\.chat/);
 });
 
 test('required branding anchors fail closed when upstream structure changes', async () => {
@@ -119,6 +123,15 @@ test('required branding anchors fail closed when upstream structure changes', as
 
 	assert.throws(() => transformNodeSource('export class MaibaoApi {}', config), /Missing required upstream anchor/);
 	assert.throws(() => transformCredentialSource("name = 'maibaoApi';", config), /Missing required upstream anchor/);
+});
+
+test('CI and release documentation target the LmaoAPI main branch', async () => {
+	const { transformCiWorkflow, transformReadme } = await libraryPromise;
+	const workflow = transformCiWorkflow("push:\n  branches:\n    - master\nnode-version: '22'\n", config);
+	assert.match(workflow, /- main/);
+	assert.match(workflow, /node-version: '24'/);
+	assert.match(workflow, /npm test/);
+	assert.equal(transformReadme('在 `master` 分支完成测试后发布。', config), '在 `main` 分支完成测试后发布。');
 });
 
 test('brand documents retain upstream change content and replace only identity and URLs', async () => {
@@ -137,7 +150,7 @@ test('brand documents retain upstream change content and replace only identity a
 		'set BASE_URL=https://api.lmao.net.cn/v1',
 	);
 	const changelog = transformChangelog(
-		'# Changelog\n\n## [1.3.5] - 2026-08-03\n\n### Added\n\n- 上游功能\n\n## [1.3.4] - 2026-07-31\n',
+		'# Changelog\n\n## [1.4.0] - 2026-09-13\n\n## [1.3.5] - 2026-08-03\n\n### Added\n\n- 上游功能\n\n## [1.3.4] - 2026-07-31\n',
 		config,
 	);
 	assert.match(changelog, /## \[1\.3\.5\][\s\S]*### Fixed[\s\S]*https:\/\/api\.lmao\.net\.cn[\s\S]*## \[1\.3\.4\]/);

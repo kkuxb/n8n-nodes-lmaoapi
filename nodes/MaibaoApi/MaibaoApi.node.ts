@@ -13,11 +13,15 @@ import {
 	buildGptImageMultipartFormData,
 	GptImageMultipartFile,
 	isGptImageModel,
+	isGptImage25Model,
+	GPT_IMAGE_MODELS,
+	GPT_IMAGE_25_MODELS,
 	GptImageBackground,
 	GptImageOutputFormat,
 	GptImageQuality,
 	resolveGptImageSize,
 } from './GptImageUtils';
+import { resolveGptImageResponse } from './GptImageResponse';
 
 const REQUEST_TIMEOUT_MS = 600000;
 
@@ -61,15 +65,7 @@ interface CollectedBinaryResult {
 	bufferMap: Map<string, Buffer>; // propName -> 预读取的 buffer
 }
 
-interface ImagesApiResponse {
-	data?: Array<{
-		b64_json?: string;
-	}>;
-	[key: string]: unknown;
-}
-
 export function buildGeminiGenerationConfig(
-	imageModel: string,
 	aspectRatio: string,
 	imageSize: string,
 ): Record<string, unknown> {
@@ -526,10 +522,10 @@ export class MaibaoApi implements INodeType {
 				type: 'options',
 				displayOptions: { show: { mode: ['image'] } },
 				options: [
+					{ name: 'GPT-Image-2.5 Sunburst', value: 'gpt-image-2.5-sunburst' },
+					{ name: 'GPT-Image-2.5 Flare', value: 'gpt-image-2.5-flare' },
 					{ name: 'GPT-Image-2', value: 'gpt-image-2' },
 					{ name: 'Nano Banana 2', value: 'gemini-3.1-flash-image-preview' },
-					{ name: 'Nano Banana 1 Pro', value: 'gemini-3-pro-image-preview' },
-					{ name: '即梦 5.0', value: 'doubao-seedream-5-0-260128' },
 				],
 				default: 'gpt-image-2',
 			},
@@ -656,7 +652,7 @@ export class MaibaoApi implements INodeType {
 				displayName: '分辨率',
 				name: 'imageSize',
 				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['gemini-3-pro-image-preview', 'gemini-3.1-flash-image-preview'] } },
+				displayOptions: { show: { mode: ['image'], imageModel: ['gemini-3.1-flash-image-preview'] } },
 				options: [{ name: '1K', value: '1K' }, { name: '2K', value: '2K' }, { name: '4K', value: '4K' }],
 				default: '1K',
 			},
@@ -664,15 +660,7 @@ export class MaibaoApi implements INodeType {
 				displayName: '分辨率',
 				name: 'imageSize',
 				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['doubao-seedream-5-0-260128'] } },
-				options: [{ name: '2K', value: '2k' }, { name: '3K', value: '3k' }],
-				default: '2k',
-			},
-			{
-				displayName: '分辨率',
-				name: 'imageSize',
-				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['gpt-image-2'] } },
+				displayOptions: { show: { mode: ['image'], imageModel: GPT_IMAGE_MODELS } },
 				// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items
 				options: [
 					{ name: '自定义', value: 'custom' },
@@ -692,7 +680,7 @@ export class MaibaoApi implements INodeType {
 				name: 'customImageSize',
 				type: 'string',
 				displayOptions: {
-					show: { mode: ['image'], imageModel: ['gpt-image-2'], imageSize: ['custom'] },
+					show: { mode: ['image'], imageModel: GPT_IMAGE_MODELS, imageSize: ['custom'] },
 				},
 				default: '',
 				placeholder: '2048x1152',
@@ -715,39 +703,42 @@ export class MaibaoApi implements INodeType {
 				displayName: '背景',
 				name: 'imageBackground',
 				type: 'options',
-				displayOptions: { show: { mode: ['__hidden__'] } },
+				displayOptions: { show: { mode: ['image'], imageModel: GPT_IMAGE_25_MODELS } },
 				options: [
 					{ name: '自动', value: 'auto' },
 					{ name: '不透明', value: 'opaque' },
+					{ name: '透明', value: 'transparent' },
 				],
 				default: 'auto',
-				description: 'GPT-Image-2 暂不开放背景设置，默认使用自动背景',
+				description: '透明背景仅支持 PNG 或 WEBP 输出格式',
+			},
+			{
+				displayName: '生成质量',
+				name: 'imageQuality',
+				type: 'options',
+				displayOptions: { show: { mode: ['image'], imageModel: GPT_IMAGE_25_MODELS } },
+				// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items -- Keep quality levels in increasing order after auto.
+				options: [
+					{ name: '自动', value: 'auto' },
+					{ name: '低', value: 'low' },
+					{ name: '中', value: 'medium' },
+					{ name: '高', value: 'high' },
+					{ name: '超高', value: 'xhigh' },
+					{ name: '最高', value: 'max' },
+				],
+				default: 'auto',
 			},
 			{
 				displayName: '输出格式',
 				name: 'imageOutputFormat',
 				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['gpt-image-2'] } },
+				displayOptions: { show: { mode: ['image'], imageModel: GPT_IMAGE_MODELS } },
 				options: [
 					{ name: 'PNG', value: 'png' },
 					{ name: 'JPEG', value: 'jpeg' },
 					{ name: 'WEBP', value: 'webp' },
 				],
 				default: 'png',
-			},
-			{
-				displayName: '尺寸比例',
-				name: 'aspectRatio',
-				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['gemini-3-pro-image-preview'] } },
-				options: [
-					{ name: '1:1', value: '1:1' }, { name: '16:9', value: '16:9' },
-					{ name: '2:3', value: '2:3' }, { name: '3:2', value: '3:2' },
-					{ name: '3:4', value: '3:4' }, { name: '4:3', value: '4:3' },
-					{ name: '4:5', value: '4:5' }, { name: '5:4', value: '5:4' },
-					{ name: '9:16', value: '9:16' },
-				],
-				default: '1:1',
 			},
 			{
 				displayName: '尺寸比例',
@@ -919,10 +910,10 @@ export class MaibaoApi implements INodeType {
 		const configuredBaseUrl = (credentials.lmaoBaseUrl as string | undefined)?.trim();
 		const legacyBaseUrl = (credentials.baseUrl as string | undefined)?.trim();
 		const legacyCustomBaseUrl =
-			legacyBaseUrl && !/^https:\/\/api\.maibao\.chat(?:\/v1)?\/?$/i.test(legacyBaseUrl)
+			legacyBaseUrl && !/^https:\/\/(?:api|ai)\.maibao\.chat(?:\/v1)?\/?$/i.test(legacyBaseUrl)
 				? legacyBaseUrl
 				: undefined;
-		const baseUrl = (configuredBaseUrl || legacyCustomBaseUrl || 'https://api.lmao.net.cn').replace(/\/+$/, '');
+		const baseUrl = (configuredBaseUrl || legacyCustomBaseUrl || 'https://ai.lmao.net.cn').replace(/\/+$/, '');
 		const rawBaseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
 		const soraBaseUrl = rawBaseUrl.replace(/\/v1$/, '');
 
@@ -995,7 +986,7 @@ export class MaibaoApi implements INodeType {
 					const sourceNodeNamesInput = this.getNodeParameter('sourceNodeNames', i, '') as string;
 					const specifiedNodes = sourceNodeNamesInput.split(',').map(s => s.trim()).filter(s => s !== '');
 
-					if (imageModel === 'gemini-3-pro-image-preview' || imageModel === 'gemini-3.1-flash-image-preview') {
+					if (imageModel === 'gemini-3.1-flash-image-preview') {
 						const parts: Array<Record<string, unknown>> = [{ text: userPrompt }];
 
 						// 提取图片（最多10张）
@@ -1015,7 +1006,7 @@ export class MaibaoApi implements INodeType {
 						// 根据模型动态构建 generationConfig
 						const aspectRatio = this.getNodeParameter('aspectRatio', i) as string;
 						const rawSize = this.getNodeParameter('imageSize', i) as string;
-						const generationConfig = buildGeminiGenerationConfig(imageModel, aspectRatio, rawSize);
+						const generationConfig = buildGeminiGenerationConfig(aspectRatio, rawSize);
 
 						debugLog('image.gemini.request', {
 							itemIndex: i,
@@ -1040,8 +1031,7 @@ export class MaibaoApi implements INodeType {
 						});
 						const b64 = res.candidates?.[0]?.content?.parts?.find((p: Record<string, unknown>) => p.inlineData)?.inlineData.data;
 						if (b64) {
-							const outputFileName = imageModel === 'gemini-3.1-flash-image-preview' ? 'gemini_flash_image.png' : 'gemini_image.png';
-							const binaryOutput = await this.helpers.prepareBinaryData(Buffer.from(b64, 'base64'), outputFileName, 'image/png');
+							const binaryOutput = await this.helpers.prepareBinaryData(Buffer.from(b64, 'base64'), 'gemini_flash_image.png', 'image/png');
 							pushExecutionData(returnData, i, {
 								json: { status: 'success' },
 								binary: { data: binaryOutput },
@@ -1053,7 +1043,9 @@ export class MaibaoApi implements INodeType {
 						const customImageSize = this.getNodeParameter('customImageSize', i, '') as string;
 						const resolvedSize = resolveGptImageSize(rawSize, customImageSize);
 						const imageQuality = this.getNodeParameter('imageQuality', i, 'auto') as GptImageQuality;
-						const imageBackground: GptImageBackground = 'auto';
+						const imageBackground: GptImageBackground = isGptImage25Model(imageModel)
+							? this.getNodeParameter('imageBackground', i, 'auto') as GptImageBackground
+							: 'auto';
 						const imageOutputFormat = this.getNodeParameter('imageOutputFormat', i, 'png') as GptImageOutputFormat;
 
 						let extractedImages: ImageData[];
@@ -1095,27 +1087,31 @@ export class MaibaoApi implements INodeType {
 								? Object.keys(buildGptImageMultipartFormData(requestConfig.body))
 								: [],
 						});
-						const responseData = requestConfig.usesMultipart
-							? (await this.helpers.httpRequest({
-								method: 'POST',
-								url: `${rawBaseUrl}${requestConfig.endpoint}`,
-								headers: { Authorization: `Bearer ${credentials.apiKey}` },
-								body: buildNativeMultipartBody(this, buildGptImageMultipartFormData(requestConfig.body)) as never,
-								timeout: REQUEST_TIMEOUT_MS,
-							})) as ImagesApiResponse
-							: (await this.helpers.httpRequest({
-								method: 'POST',
-								url: `${rawBaseUrl}${requestConfig.endpoint}`,
-								headers: { Authorization: `Bearer ${credentials.apiKey}` },
-								body: requestConfig.body,
-								json: true,
-								timeout: REQUEST_TIMEOUT_MS,
-							})) as ImagesApiResponse;
-						if (responseData.data?.[0]?.b64_json) {
+						const response = await this.helpers.httpRequest({
+							method: 'POST',
+							url: `${rawBaseUrl}${requestConfig.endpoint}`,
+							headers: { Authorization: `Bearer ${credentials.apiKey}` },
+							body: requestConfig.usesMultipart
+								? buildNativeMultipartBody(this, buildGptImageMultipartFormData(requestConfig.body)) as never
+								: requestConfig.body,
+							json: !requestConfig.usesMultipart,
+							returnFullResponse: true,
+							timeout: REQUEST_TIMEOUT_MS,
+						});
+						try {
+							const result = await resolveGptImageResponse(response.body, async (url) => {
+								const downloaded = await this.helpers.httpRequest({
+									method: 'GET',
+									url,
+									encoding: 'arraybuffer',
+									timeout: REQUEST_TIMEOUT_MS,
+								});
+								return Buffer.from(downloaded);
+							});
 							const binaryOutput = await this.helpers.prepareBinaryData(
-								Buffer.from(responseData.data[0].b64_json, 'base64'),
-								requestConfig.outputFileName,
-								requestConfig.outputMimeType,
+								result.buffer,
+								requestConfig.outputFileName.replace(/\.[^.]+$/, `.${result.extension}`),
+								result.mimeType,
 							);
 							pushExecutionData(returnData, i, {
 								json: {
@@ -1123,51 +1119,20 @@ export class MaibaoApi implements INodeType {
 									model: imageModel,
 									endpoint: requestConfig.endpoint,
 									hasReferenceImages: extractedImages.length > 0,
+									...(result.imageUrl ? { imageUrl: result.imageUrl } : {}),
 								},
 								binary: { data: binaryOutput },
 							});
-						} else throw new NodeOperationError(this.getNode(), 'GPT-Image-2 接口未返回图像。');
+						} catch (error) {
+							const rawRequestId = response.headers?.['x-request-id'] ?? response.headers?.['x-oneapi-request-id'];
+							const requestId = typeof rawRequestId === 'string'
+								? rawRequestId.replace(/[^\w.-]/g, '').slice(0, 160)
+								: '';
+							throw new NodeOperationError(this.getNode(), `${imageModel}：${error.message}（HTTP ${response.statusCode}${requestId ? `；请求 ID：${requestId}` : ''}）`);
+						}
 
 					} else {
-						// 即梦模型需要 imageSize 参数
-						const rawSize = this.getNodeParameter('imageSize', i) as string;
-						// 提取图片（最多10张）
-						let extractedImages: ImageData[];
-						if (binarySourceMode === 'url') {
-							const imageUrlsInput = this.getNodeParameter('imageUrls', i, '') as string;
-							const urls = imageUrlsInput.split(',').map(s => s.trim()).filter(s => s !== '');
-							extractedImages = await downloadImagesFromUrls(this, urls, 10);
-						} else {
-							const { binary: collectedBinary, bufferMap } = await collectBinaryFromNodes(this, i, binarySourceMode, specifiedNodes);
-							extractedImages = await extractImagesFromBinary(this, i, collectedBinary, propNames, 10, bufferMap);
-						}
-						const images: string[] = extractedImages.map(img => `data:${img.mimeType};base64,${img.base64}`);
-						debugLog('image.doubao.request', {
-							itemIndex: i,
-							model: imageModel,
-							url: `${rawBaseUrl}/images/generations`,
-							binarySourceMode,
-							referenceImageCount: extractedImages.length,
-							firstImageBytes: extractedImages[0]?.buffer.length ?? null,
-							promptLength: userPrompt.length,
-							imageSize: rawSize,
-						});
-
-						const responseData = await this.helpers.httpRequest({
-							method: 'POST',
-							url: `${rawBaseUrl}/images/generations`,
-							headers: { Authorization: `Bearer ${credentials.apiKey}` },
-							body: { model: imageModel, prompt: userPrompt, size: rawSize, n: 1, response_format: 'b64_json', image: images.length === 1 ? images[0] : (images.length > 1 ? images : undefined), watermark: true },
-							json: true,
-							timeout: REQUEST_TIMEOUT_MS,
-						});
-						if (responseData.data?.[0]?.b64_json) {
-							const binaryOutput = await this.helpers.prepareBinaryData(Buffer.from(responseData.data[0].b64_json, 'base64'), `doubao_image.png`, 'image/png');
-							pushExecutionData(returnData, i, {
-								json: { status: 'success' },
-								binary: { data: binaryOutput },
-							});
-						} else throw new NodeOperationError(this.getNode(), '即梦接口未返回图像。');
+						throw new NodeOperationError(this.getNode(), `图像模型 ${imageModel} 已移除或不受支持，请重新选择生成模型。`);
 					}
 
 				} else if (mode === 'video') {

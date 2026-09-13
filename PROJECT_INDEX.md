@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
-**Generated:** 2026-03-08
-**Version:** 1.3.6
+**Generated:** 2026-09-13
+**Version:** 1.4.0
 **Type:** n8n Community Node Package
 
 ---
@@ -14,8 +14,10 @@ n8n-nodes-lmaoapi/
 │   └── MaibaoApi.credentials.ts    # API credential definition
 ├── nodes/
 │   └── MaibaoApi/
-│       ├── MaibaoApi.node.ts       # Main node implementation (713 lines)
-│       └── maibaoapi.png           # Node icon
+│       ├── MaibaoApi.node.ts       # Main node implementation
+│       ├── GptImageUtils.ts       # Model mapping and request validation
+│       ├── GptImageResponse.ts    # Base64/URL response handling
+│       └── maibaoapi.svg           # Node icon
 ├── dist/                           # Compiled output (published to npm)
 │   ├── credentials/
 │   ├── nodes/
@@ -33,7 +35,7 @@ n8n-nodes-lmaoapi/
 └── LICENSE.md                      # MIT License
 ```
 
-**Total Source Code:** 736 lines (TypeScript)
+**Total Source Code:** 1681 lines across 4 TypeScript files
 
 ---
 
@@ -43,7 +45,7 @@ n8n-nodes-lmaoapi/
 
 - **Path:** `nodes/MaibaoApi/MaibaoApi.node.ts`
 - **Class:** `MaibaoApi implements INodeType`
-- **Purpose:** n8n node for LmaoAPI integration (text, image, video, embeddings)
+- **Purpose:** n8n node for LmaoAPI integration (text, image, audio)
 
 ### Credentials
 
@@ -75,17 +77,18 @@ n8n-nodes-lmaoapi/
 **Supported Modes:**
 
 1. **Text Generation** - Chat completions with multimodal support (text + images)
-2. **Image Generation** - Gemini models (3.1 Flash, 3 Pro) + 即梦 5.0
-3. **Video Generation** - Sora 2 with storyboard mode, smart polling
-4. **Embeddings** - text-embedding-3-large/small
+2. **Image Generation** - GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2
+3. **Audio Transcription** - Whisper-1
+
+Video and embeddings code remains in the repository but is hidden from the public node interface.
 
 **Key Features:**
 
 - Cross-node Binary data reading (via `workflowDataProxy`)
-- Automatic Base64 conversion for images (max 3 images)
+- Automatic Base64 conversion for images (max 10 images)
 - Pre-reading file system binaries to avoid context issues
-- Smart polling for video generation (15s intervals, 10min max)
-- Storyboard mode for multi-shot video creation
+- GPT Image Base64/URL responses produce Binary data; original URLs also appear in `json.imageUrl`
+- GPT Image 2.5 quality and background controls
 
 ### MaibaoApi Credentials (`credentials/MaibaoApi.credentials.ts`)
 
@@ -95,7 +98,7 @@ n8n-nodes-lmaoapi/
 **Properties:**
 
 - `apiKey` - API authentication key (password field)
-- `lmaoBaseUrl` - API base URL (default: `https://api.lmao.net.cn`)
+- `lmaoBaseUrl` - Selectable API base URL (`api.lmao.net.cn` or `ai.lmao.net.cn`; AI is the default)
 
 ---
 
@@ -104,7 +107,7 @@ n8n-nodes-lmaoapi/
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.3.6
+- **Version:** 1.4.0
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`
@@ -116,7 +119,7 @@ n8n-nodes-lmaoapi/
 - **Module:** CommonJS
 - **Strict Mode:** Enabled
 - **Output:** `dist/`
-- **Includes:** `credentials/**/*`, `nodes/**/*`
+- **Includes:** `credentials/**/*`, `nodes/**/*`, `nodes/**/*.json`, `package.json`
 
 ### .prettierrc.js
 
@@ -134,23 +137,23 @@ n8n-nodes-lmaoapi/
 
 ## 📚 Documentation
 
-### README.md (7.6KB)
+### README.md
 
 - **Language:** Chinese
 - **Content:** User guide, features, installation, usage examples
 - **Sections:** Why, Features, Installation, Usage, Version History, Disclaimer
 
-### CLAUDE.md (3.8KB)
+### CLAUDE.md
 
 - **Purpose:** Guidance for Claude Code instances
 - **Content:** Architecture, dev commands, API integration, Binary handling
 
-### CHANGELOG.md (1.3KB)
+### CHANGELOG.md
 
-- **Latest:** v1.3.6 (2026-08-21)
-- **Changes:** Preserve n8n item linking for all node outputs
+- **Latest:** v1.4.0 (2026-09-13)
+- **Changes:** Add GPT Image 2.5, fix URL responses, remove Nano Banana 1 Pro and Jimeng 5.0
 
-### LICENSE.md (1KB)
+### LICENSE.md
 
 - **Type:** MIT License
 
@@ -160,14 +163,15 @@ n8n-nodes-lmaoapi/
 
 ### GitHub Actions (`.github/workflows/ci.yml`)
 
-- **Triggers:** Pull requests, pushes to main branch
-- **Node Version:** 22
+- **Triggers:** Pull requests, pushes to the `main` branch
+- **Node Version:** 24
 - **Steps:**
   1. Install dependencies (`npm ci`)
   2. Run linter (`npm run lint`)
   3. Build project (`npm run build`)
+  4. Run regression tests (`npm test`)
 
-**No test files present** - Project relies on manual testing in n8n
+**Regression tests:** After building, `npm test` runs all nine test files, including GPT Image model configuration, response handling and node execution. CI runs lint, build and tests.
 
 ---
 
@@ -209,8 +213,10 @@ npm run lint:fix        # Fix linting issues
 ### Release
 
 ```bash
-npm run release         # Create new release (uses release-it)
+npm run release         # Push Git commits/tags and create GitHub Release (uses release-it)
 ```
+
+Automatic npm publishing and npm authentication checks are disabled. If the package version has already been updated, use `npm run release -- --no-increment` (uses the version already in package.json). The maintainer publishes to npm separately with `npm publish` and completes authentication manually.
 
 ### Installation in n8n
 
@@ -226,34 +232,45 @@ Or install via n8n Community Nodes UI.
 
 ### Base URLs
 
-- **Standard API:** `https://api.lmao.net.cn/v1`
-- **Sora API:** `https://api.lmao.net.cn` (v1 suffix removed)
+- **Default API:** `https://ai.lmao.net.cn/v1`
+- **Alternative API:** `https://api.lmao.net.cn/v1`
+- **Sora API:** selected API domain with the `/v1` suffix removed
 
 ### Endpoints
 
 - **Text:** `POST /v1/chat/completions`
 - **Image (Gemini):** `POST /v1beta/models/{model}:generateContent`
-- **Image (即梦):** `POST /v1/images/generations`
+- **Image (GPT Image):** `POST /v1/images/generations` or multipart `POST /v1/images/edits`
+- **Audio:** `POST /v1/audio/transcriptions`
+The following endpoints belong to hidden modes:
+
 - **Video Create:** `POST /v1/videos`
 - **Video Retrieve:** `GET /v1/videos/{id}`
 - **Video Download:** `GET /v1/videos/{id}/content`
 - **Video List:** `GET /v1/videos`
-- **Embeddings:** `POST /v1/embeddings`
+- **Embeddings (hidden):** `POST /v1/embeddings`
 
 ### Supported Models
 
 **Text Generation:**
 
-- `gemini-3.1-pro-preview` (default)
+- `gpt-5.6-sol` (default)
 - Custom model IDs supported
 
-**Image Generation:**
+**Image Generation (dropdown order):**
 
-- `gemini-3.1-flash-image-preview` (Nano Banana 2) - 13 aspect ratios
-- `gemini-3-pro-image-preview` (Nano Banana 1 Pro) - 9 aspect ratios
-- `doubao-seedream-5-0-260128` (即梦 5.0) - 2K/3K resolution
+1. `gpt-image-2.5-sunburst` → `gpt-image-2.5-sunburst-c`
+2. `gpt-image-2.5-flare` → `gpt-image-2.5-flare-c`
+3. `gpt-image-2` → `gpt-image-2-c` (default)
+4. `gemini-3.1-flash-image-preview` (Nano Banana 2) - 13 aspect ratios, 1K/2K/4K
 
-**Video Generation:**
+Only the two 2.5 models expose 超高 (`xhigh`), 最高 (`max`) and background settings. Transparent backgrounds require PNG or WebP. Compression and response-format selectors are not exposed. URL responses are downloaded automatically; Base64 takes priority if both fields are present, with the URL preserved.
+
+Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them must select a supported model; otherwise execution fails before sending a generation request.
+
+**Audio Transcription:** `whisper-1`
+
+**Video Generation (hidden):**
 
 - `sora-2-all` (Sora 2)
 - `sora-2-pro-all` (Sora 2 Pro)
@@ -271,10 +288,10 @@ Or install via n8n Community Nodes UI.
 
 - **Two modes:** Current node input OR specified upstream nodes
 - **Pre-reading:** File system binaries pre-read using `getBinaryStream()` + `binaryToBuffer()`
-- **Default properties:** `data, data0, data1, data2, file, attachment`
-- **Max images:** 3 for text/image generation, 1 for video reference
+- **Default properties:** `data, data0, data1, data2, data3, data4, data5`
+- **Max images:** 10 for text/image generation, 1 for video reference
 
-### Video Generation Features
+### Video Generation Features (hidden)
 
 - **Storyboard mode:** Multi-shot video with duration control
 - **Smart polling:** 15-second intervals, 10-minute timeout
@@ -290,19 +307,29 @@ Or install via n8n Community Nodes UI.
 
 ---
 
-## 📊 Token Efficiency
-
-**Index Size:** ~3KB (this file)
-**Full Codebase:** ~736 lines TypeScript
-**Estimated Full Read:** ~15,000 tokens
-**Index Read:** ~2,000 tokens
-**Savings:** ~87% token reduction per session
-
----
-
 ## 🔄 Version History
 
-### v1.3.6 (Current)
+### v1.4.0 (Current)
+
+- Uses the LmaoAPI address dropdown (AI domain by default, both addresses include `/v1`) and preserves saved credential URLs
+- Replaces embedded PNG icons with cropped vector LmaoAPI SVG logos
+- Publishes GitHub releases from `main` using CHANGELOG release notes; npm publishing remains manual
+
+- Adds GPT Image 2.5 Sunburst/Flare and their quality/background controls
+- Accepts Base64 or URL images and outputs original URLs alongside Binary data
+- Removes Nano Banana 1 Pro and Jimeng 5.0; existing workflows must reselect a model
+
+### v1.3.8
+
+- Replaces node and credential PNG icons with a consistent SVG logo
+- Aligns CI and release automation with the repository's `main` branch
+
+### v1.3.7
+
+- Makes the credential API address selectable between `api.lmao.net.cn` and `ai.lmao.net.cn`
+- Defaults new credentials to `ai.lmao.net.cn` while preserving existing saved credentials
+
+### v1.3.6
 
 - Preserves n8n item linking for all success and `continueOnFail` outputs
 
@@ -316,5 +343,5 @@ Or install via n8n Community Nodes UI.
 ---
 
 **Index Status:** ✅ Complete
-**Last Updated:** 2026-03-08
+**Last Updated:** 2026-09-13
 **Maintainer:** 毛淞淮 (maosonghuai)

@@ -5,6 +5,9 @@ const {
 	buildGptImageMultipartFormData,
 	buildGptImageRequest,
 	isGptImageModel,
+	isGptImage25Model,
+	GPT_IMAGE_MODELS,
+	GPT_IMAGE_25_MODELS,
 	resolveGptImageSize,
 } = require('../dist/nodes/MaibaoApi/GptImageUtils.js');
 const { MaibaoApi } = require('../dist/nodes/MaibaoApi/MaibaoApi.node.js');
@@ -125,8 +128,8 @@ test('透明背景不允许 jpeg 输出', () => {
 	);
 });
 
-test('透明背景使用 API 接受的 transparent_background 参数', () => {
-	const request = buildGptImageRequest('gpt-image-2', {
+test('新模型透明背景使用官方 transparent 参数', () => {
+	const request = buildGptImageRequest('gpt-image-2.5-sunburst', {
 		prompt: '透明背景图标',
 		images: [],
 		size: '1024x1024',
@@ -135,10 +138,10 @@ test('透明背景使用 API 接受的 transparent_background 参数', () => {
 		outputFormat: 'png',
 	});
 
-	assert.equal(request.body.background, 'transparent_background');
+	assert.equal(request.body.background, 'transparent');
 });
 
-test('节点默认使用 GPT-Image-2 且模型选项排在第一位', () => {
+test('图像模式仅保留四个模型，新模型在前且默认模型不变', () => {
 	const node = new MaibaoApi();
 	const imageModelProperty = node.description.properties.find(
 		(property) => property.name === 'imageModel',
@@ -148,10 +151,10 @@ test('节点默认使用 GPT-Image-2 且模型选项排在第一位', () => {
 	assert.deepEqual(
 		imageModelProperty.options.map((option) => ({ name: option.name, value: option.value })),
 		[
+			{ name: 'GPT-Image-2.5 Sunburst', value: 'gpt-image-2.5-sunburst' },
+			{ name: 'GPT-Image-2.5 Flare', value: 'gpt-image-2.5-flare' },
 			{ name: 'GPT-Image-2', value: 'gpt-image-2' },
 			{ name: 'Nano Banana 2', value: 'gemini-3.1-flash-image-preview' },
-			{ name: 'Nano Banana 1 Pro', value: 'gemini-3-pro-image-preview' },
-			{ name: '即梦 5.0', value: 'doubao-seedream-5-0-260128' },
 		],
 	);
 });
@@ -196,7 +199,7 @@ test('节点仅在 GPT-Image-2 选择自定义分辨率时显示输入框', () =
 	);
 
 	assert.deepEqual(customImageSizeProperty.displayOptions, {
-		show: { mode: ['image'], imageModel: ['gpt-image-2'], imageSize: ['custom'] },
+		show: { mode: ['image'], imageModel: GPT_IMAGE_MODELS, imageSize: ['custom'] },
 	});
 });
 
@@ -247,18 +250,62 @@ test('GPT-Image-2 自定义分辨率会按 OpenAI 尺寸约束校验', () => {
 	);
 });
 
-test('节点隐藏 GPT-Image-2 背景参数且不再暴露透明选项', () => {
+test('背景仅向两个新模型开放，包含透明选项', () => {
 	const node = new MaibaoApi();
 	const backgroundProperty = node.description.properties.find(
 		(property) => property.name === 'imageBackground',
 	);
 
-	assert.deepEqual(backgroundProperty.displayOptions, { show: { mode: ['__hidden__'] } });
+	assert.deepEqual(backgroundProperty.displayOptions, { show: { mode: ['image'], imageModel: GPT_IMAGE_25_MODELS } });
 	assert.deepEqual(
 		backgroundProperty.options.map((option) => ({ name: option.name, value: option.value })),
 		[
 			{ name: '自动', value: 'auto' },
 			{ name: '不透明', value: 'opaque' },
+			{ name: '透明', value: 'transparent' },
 		],
 	);
+});
+
+test('两个新模型映射 -c，复用生图和 multipart 编辑，未添加非官方返回参数', () => {
+	for (const model of GPT_IMAGE_25_MODELS) {
+		assert.equal(isGptImageModel(model), true);
+		assert.equal(isGptImage25Model(model), true);
+		for (const quality of ['xhigh', 'max']) {
+			for (const images of [[], [{ base64: 'aW1hZ2U=', mimeType: 'image/png' }]]) {
+				const request = buildGptImageRequest(model, {
+					prompt: 'test', images, size: '2160x3840', quality,
+					background: 'transparent', outputFormat: 'webp',
+				});
+				assert.equal(request.body.model, `${model}-c`);
+				assert.equal(request.body.quality, quality);
+				assert.equal(request.body.background, 'transparent');
+				assert.equal(request.body.response_format, undefined);
+				assert.equal(request.body.output_compression, undefined);
+				assert.equal(request.endpoint, images.length ? '/images/edits' : '/images/generations');
+				assert.equal(request.usesMultipart, !!images.length);
+				if (images.length) {
+					const form = buildGptImageMultipartFormData(request.body);
+					assert.equal(form.model, `${model}-c`);
+					assert.equal(form.quality, quality);
+					assert.equal(form.background, 'transparent');
+					assert.equal(form['image[]'].length, 1);
+				}
+			}
+		}
+	}
+});
+
+test('仅新模型展示超高/最高，旧模型也在请求阶段拒绝不支持的档位', () => {
+	const node = new MaibaoApi();
+	for (const model of GPT_IMAGE_MODELS) {
+		const property = node.description.properties.find(p => p.name === 'imageQuality' && p.displayOptions.show.imageModel.includes(model));
+		const advanced = property.options.filter(o => ['xhigh', 'max'].includes(o.value));
+		assert.deepEqual(advanced, isGptImage25Model(model) ? [{ name: '超高', value: 'xhigh' }, { name: '最高', value: 'max' }] : []);
+	}
+	for (const quality of ['xhigh', 'max']) {
+		assert.throws(() => buildGptImageRequest('gpt-image-2', {
+			prompt: 'test', images: [], size: 'auto', quality, background: 'auto', outputFormat: 'png',
+		}), /仅支持 GPT-Image-2.5/);
+	}
 });

@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-13
+
+### Added
+
+- 新增 GPT-Image-2.5 Sunburst 和 Flare，依次置于图像模型下拉框最前方，请求时映射到各自的 `-c` 模型 ID。
+- 仅两个新模型开放超高（`xhigh`）、最高（`max`）质量和自动/不透明/透明背景；透明背景必须使用 PNG 或 WEBP，JPEG 会在请求前被拒绝。
+
+### Fixed
+
+- 修复 GPT Image 收到 URL 图片响应时误报“未返回图片”的问题，同时支持 `data[0].b64_json` 和 `data[0].url`。
+- URL 图片自动下载到 `binary.data`，原链接同步输出到 `json.imageUrl`；同时收到两种数据时优先解码 Base64 并保留 URL。
+- 根据实际图片文件头确定 MIME 和扩展名，区分无图片、业务错误和下载失败；下载不携带服务商凭据，失败不重复生图，错误中保留可用的生图请求 ID。
+
+### Changed
+
+- 凭证 API 地址改为下拉框，默认使用 `https://ai.lmao.net.cn`，另可选择 `https://api.lmao.net.cn`；实际地址均带 `/v1`，保留 `lmaoBaseUrl` 字段及旧凭证地址兼容。
+- 节点和凭证统一采用真正的龙猫矢量 SVG Logo，裁去四周多余留白，完整保留图案和 LMAO 文字。
+- 更新上游同步规则，持续保留 LmaoAPI 域名、凭证、Logo 和发布说明；CI 与 GitHub 发布统一使用本仓库的 `main` 分支。
+
+- 同步 README、包元数据和项目索引至 `1.4.0`。默认模型仍为 GPT-Image-2。
+- 发布脚本仅自动处理 Git 推送、版本 tag 和 GitHub Release，关闭 npm 自动发布及登录检查；npm 由维护者手动发布。
+- 明确 GPT Image 不发送 `response_format`，不提供返回模式选择器；暂不开放压缩设置。
+
+### Removed
+
+- 从图像生成模式移除 Nano Banana 1 Pro 和即梦 5.0，包括专属参数与执行分支。使用已移除模型的旧工作流必须重新选择模型，否则执行会报错且不发送生图请求。
+
+
+## [1.3.8] - 2026-09-01
+
+### Changed
+
+- 将节点与凭证的 PNG 图标替换为保持原 Logo 视觉的 SVG，并同步更新图标引用
+- 将 CI 工作流的推送监听分支从不存在的 `main` 修正为仓库默认分支 `master`
+- 使用仓库级 release-it 配置支持从 `master` 执行完整发布流程
+- 同步 README、包元数据和项目索引至 `1.3.8`
+
+## [1.3.7] - 2026-09-01
+
+### Changed
+
+- 将凭证中的 API 地址从隐藏固定值改为下拉选项，可选择 `https://api.lmao.net.cn` 或
+  `https://ai.lmao.net.cn`
+- 新建凭证默认使用 `https://ai.lmao.net.cn`，内部保留 `/v1` 以兼容现有请求路径
+- 保持 `baseUrl` 字段名不变，已保存的旧凭证继续使用原地址
+- 新增凭证配置回归测试，并同步 README、包元数据和项目索引至 `1.3.7`
+
 ## [1.3.6] - 2026-08-21
 
 ### Fixed
@@ -164,6 +211,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 完整的类型定义
 - 自动 Base64 转换
 
+[1.4.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.4.0
+[1.3.8]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.8
+[1.3.7]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.7
 [1.3.6]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.6
 [1.3.5]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.5
 [1.3.4]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.4

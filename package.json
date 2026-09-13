@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-lmaoapi",
-	"version": "1.3.6",
+	"version": "1.4.0",
 	"description": "便捷调用 LmaoAPI 进行文字生成、图像生成、音频转文本。",
 	"license": "MIT",
 	"homepage": "https://github.com/kkuxb/n8n-nodes-lmaoapi#readme",
@@ -12,6 +12,8 @@
 		"文字生成",
 		"图像生成",
 		"GPT-image-2",
+		"gpt-image-2.5-sunburst",
+		"gpt-image-2.5-flare",
 		"音频转文本",
 		"nano banana2"
 	],
@@ -34,8 +36,8 @@
 		"lint:fix": "n8n-node lint --fix",
 		"test": "node --test test/*.test.js",
 		"test:audio": "npm run build && node --test test/audio-transcription.test.js",
-		"test:gpt-image-2": "npm run build && node --test test/gpt-image-2.test.js",
-		"release": "n8n-node release",
+		"test:gpt-image-2": "npm run build && node --test test/gpt-image-2.test.js test/gpt-image-response.test.js",
+		"release": "release-it",
 		"sync-upstream": "node scripts/sync-upstream.mjs"
 	},
 	"files": [

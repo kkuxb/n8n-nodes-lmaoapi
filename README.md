@@ -10,12 +10,12 @@
 ## 功能概览
 
 - **文字生成**：默认使用 `gpt-5.6-sol`，支持自定义模型 ID、系统提示词、文档文本拼接和最多 10 张图片输入。
-- **图像生成**：支持 GPT-Image-2、Nano Banana 2、Nano Banana 1 Pro 和即梦 5.0，生成结果直接输出为 n8n Binary。
+- **图像生成**：支持 GPT-Image-2.5 Sunburst、GPT-Image-2.5 Flare、GPT-Image-2 和 Nano Banana 2，生成结果直接输出为 n8n Binary。
 - **音频转文本**：固定使用 `whisper-1`，支持纯文本与句级时间戳 JSON，并额外输出可直接拖拽使用的 `time-text` 字段。
 - **多种 Binary 来源**：可从当前节点输入、指定节点读取图片或音频；文字与图像模式还支持从 URL 获取图片。
 - **长任务超时**：所有 API 请求统一使用 600 秒超时。
 
-> 当前节点界面只开放上述三种模式。仓库中保留的视频与向量相关实现不属于 1.3.6 的公开节点功能。
+> 当前节点界面只开放上述三种模式。仓库中保留的视频与向量相关实现不属于 1.4.0 的公开节点功能。
 
 ## 安装
 
@@ -36,7 +36,8 @@ npm install n8n-nodes-lmaoapi
 ## 快速开始
 
 1. 在 n8n 凭证管理中创建 `LmaoAPI API` 凭证。
-2. 填入从 LmaoAPI 获取的 API Key；Base URL 已固定为 `https://api.lmao.net.cn/v1`，无需配置。
+2. 填入从 LmaoAPI 获取的 API Key，并选择 API 地址：`https://api.lmao.net.cn` 或
+   `https://ai.lmao.net.cn`（默认）。
 3. 添加 `LmaoAPI` 节点，选择文字生成、图像生成或音频转文本模式。
 4. 配置提示词或 Binary 输入并执行节点。
 
@@ -81,12 +82,14 @@ data,data0,data1,data2,data3,data4,data5
 
 | 前台名称              | 请求模型 ID                          | 分辨率           | 比例    | 其他参数             |
 | ----------------- | -------------------------------- | ------------- | ----- | ---------------- |
+| GPT-Image-2.5 Sunburst | `gpt-image-2.5-sunburst-c` | 自动、预设尺寸或自定义尺寸 | 不单独设置 | 质量、背景、PNG/JPEG/WEBP |
+| GPT-Image-2.5 Flare | `gpt-image-2.5-flare-c` | 自动、预设尺寸或自定义尺寸 | 不单独设置 | 质量、背景、PNG/JPEG/WEBP |
 | GPT-Image-2       | `gpt-image-2-c`                  | 自动、预设尺寸或自定义尺寸 | 不单独设置 | 质量、PNG/JPEG/WEBP |
 | Nano Banana 2     | `gemini-3.1-flash-image-preview` | 1K / 2K / 4K  | 13 种  | —                |
-| Nano Banana 1 Pro | `gemini-3-pro-image-preview`     | 1K / 2K / 4K  | 9 种   | —                |
-| 即梦 5.0            | `doubao-seedream-5-0-260128`     | 2K / 3K       | 不单独设置 | 水印由节点请求启用        |
 
-GPT-Image-2 在节点中仍显示为 `gpt-image-2`，发送请求时自动映射为 `gpt-image-2-c`。它支持以下尺寸：
+Nano Banana 1 Pro 和即梦 5.0 已从图像生成模式移除。旧工作流如果仍选用这两个模型，执行时会提示重新选择模型，不会发送生图请求。
+
+三个 GPT Image 模型在节点中使用不带 `-c` 的模型值，发送请求时明确映射到上表 ID。默认模型仍为 GPT-Image-2。三个模型共享以下尺寸：
 
 - `auto`
 - `1024x1024`、`1024x1536`、`1536x1024`
@@ -95,6 +98,20 @@ GPT-Image-2 在节点中仍显示为 `gpt-image-2`，发送请求时自动映射
 - 符合接口约束的自定义尺寸，例如 `2048x1152`
 
 GPT-Image-2 的质量可选自动、低、中、高；输出格式可选 PNG、JPEG、WEBP。背景设置目前不在节点界面开放，固定使用自动背景。
+
+仅两个 GPT-Image-2.5 模型额外提供超高（`xhigh`）、最高（`max`）质量，以及自动、不透明、透明背景。透明背景使用官方 `background: "transparent"`，必须配合 PNG 或 WEBP，选择 JPEG 会在发送请求前报错。暂不提供压缩参数。
+
+### GPT Image 图片输出
+
+三个 GPT Image 模型均兼容 `data[0].b64_json` 和 `data[0].url`：
+
+- Base64：解码后输出至 `binary.data`。
+- URL：自动下载图片至 `binary.data`，同时在 `json.imageUrl` 输出服务商返回的完整链接。
+- 两个字段同时存在：使用 Base64 图片并保留 `json.imageUrl`，避免额外下载。
+
+图片链接可能是临时签名链接，请及时保存 Binary 图片。URL 下载不附带麦包 API Key；下载失败会明确报错并附带生图请求 ID（若服务商提供），不会自动重复生图。
+
+[OpenAI 官方参数说明](https://developers.openai.com/api/reference/resources/images/methods/generate)明确 `response_format` 的 URL/Base64 选择适用于 DALL·E 2/3，不支持 GPT Image。因此三个 GPT Image 模型均不发送此参数，也没有返回模式选择器；对 URL 的支持用于兼容服务商实际响应。`output_format` 只选择 PNG/JPEG/WEBP 文件格式。
 
 ## 音频转文本
 
@@ -175,9 +192,9 @@ npm run dev
 | -------------------------- | -------------------------------- |
 | `npm run build`            | 构建 TypeScript 节点并复制静态资源到 `dist/` |
 | `npm run build:watch`      | 持续监听 TypeScript 变更               |
-| `npm test`                 | 先构建，再运行全部 Node.js 回归测试           |
+| `npm test`                 | 运行全部回归测试（需先构建）           |
 | `npm run test:audio`       | 运行音频输出与 Binary 默认值测试             |
-| `npm run test:gpt-image-2` | 运行 GPT-Image-2 回归测试              |
+| `npm run test:gpt-image-2` | 运行 GPT Image 模型与图片响应回归测试              |
 | `npm run lint`             | 执行 n8n 社区节点规则检查                  |
 | `npm run dev`              | 启动节点热更新和本地 n8n 开发服务器             |
 
@@ -189,13 +206,36 @@ npm run dev
 
 Windows 下如遇原生依赖、`node-gyp` 或 SQLite 构建问题，请先确认当前 Shell 使用 Node.js 24。
 
-## 1.3.6 更新内容
+## 发布版本
 
-- 所有输出现在都会保留 n8n `pairedItem` 关联，修复多 Item 工作流中拖拽生成的
-  `$('Node').item` 表达式无法追溯上游数据的问题。
-- 文字、图像、视频、音频、向量嵌入以及 `continueOnFail` 输出统一通过同一关联逻辑，
-  不改变现有 JSON、Binary、参数或 API 请求。
-- 新增多 Item、Binary 数据和失败继续路径的回归测试，防止后续功能迭代再次遗漏关联信息。
+在 `main` 分支完成 lint、构建、测试并提交全部修改后，用 release-it 推送代码与 tag、创建 GitHub Release。发布说明自动读取 CHANGELOG 中对应版本；npm 自动发布及登录检查已关闭，npm 由维护者手动发布。
+
+GitHub 发布需要 `GITHUB_TOKEN`。已登录 GitHub CLI 时，可在 PowerShell 中临时使用当前账号的凭据：
+
+```powershell
+$env:GITHUB_TOKEN = gh auth token
+```
+
+本次版本号已同步为 `1.4.0`，使用 `--no-increment` 保持版本不变：
+
+```bash
+npm run release -- --no-increment --dry-run
+npm run release -- --no-increment
+```
+
+GitHub 发布完成后，维护者可在该 tag 对应代码上执行 `npm publish`，并手动完成 npm 身份验证。
+
+## 1.4.0 更新内容
+
+- 凭证 API 地址改为下拉框，默认使用 `https://ai.lmao.net.cn`，另可选择 `https://api.lmao.net.cn`；实际地址均带 `/v1`，保留 `lmaoBaseUrl` 字段及旧凭证地址兼容。
+- 节点和凭证统一采用真正的龙猫矢量 SVG Logo，裁去四周多余留白，完整保留图案和 LMAO 文字。
+- 更新上游同步规则，持续保留 LmaoAPI 域名、凭证、Logo 和发布说明；CI 与 GitHub 发布统一使用本仓库的 `main` 分支。
+
+- 新增 GPT-Image-2.5 Sunburst 和 Flare，依次置于图像模型下拉框最前方，请求时映射到对应的 `-c` 模型 ID；默认模型仍为 GPT-Image-2。
+- 修复服务商返回图片 URL 时误报“未返回图片”的问题。三个 GPT Image 模型均兼容 Base64 和 URL，URL 自动下载到 `binary.data`，并同步输出到 `json.imageUrl`。
+- 仅两个新模型增加超高（`xhigh`）、最高（`max`）质量与背景设置；透明背景支持 PNG/WEBP，暂不开放压缩设置。
+- 根据图片实际内容识别文件格式；区分无图片、服务商业务错误和下载失败，下载失败不会重新发起生图。
+- 移除 Nano Banana 1 Pro 和即梦 5.0。升级前请将使用这两个模型的工作流改为当前支持的模型，否则执行时会提示重新选择。
 
 完整版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 

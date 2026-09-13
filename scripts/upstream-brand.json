@@ -8,8 +8,10 @@
 		"displayName": "LmaoAPI",
 		"credentialName": "lmaoApi",
 		"credentialBaseUrlName": "lmaoBaseUrl",
-		"apiOrigin": "https://api.lmao.net.cn",
-		"apiBaseUrl": "https://api.lmao.net.cn/v1",
+		"apiOrigin": "https://ai.lmao.net.cn",
+		"apiBaseUrl": "https://ai.lmao.net.cn/v1",
+		"alternativeApiOrigin": "https://api.lmao.net.cn",
+		"branch": "main",
 		"homepage": "https://github.com/kkuxb/n8n-nodes-lmaoapi#readme",
 		"repository": "git+https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
 		"repositoryWeb": "https://github.com/kkuxb/n8n-nodes-lmaoapi",
@@ -18,6 +20,15 @@
 		"packageManager": "npm@11.12.1"
 	},
 	"changelogPatches": [
+		{
+			"version": "1.4.0",
+			"section": "Changed",
+			"entries": [
+				"凭证 API 地址改为下拉框，默认使用 `https://ai.lmao.net.cn`，另可选择 `https://api.lmao.net.cn`；实际地址均带 `/v1`，保留 `lmaoBaseUrl` 字段及旧凭证地址兼容。",
+				"节点和凭证统一采用真正的龙猫矢量 SVG Logo，裁去四周多余留白，完整保留图案和 LMAO 文字。",
+				"更新上游同步规则，持续保留 LmaoAPI 域名、凭证、Logo 和发布说明；CI 与 GitHub 发布统一使用本仓库的 `main` 分支。"
+			]
+		},
 		{
 			"version": "1.3.5",
 			"section": "Fixed",
@@ -32,9 +43,11 @@
 		"credentials/maibaoapi.svg",
 		"nodes/MaibaoApi/maibaoapi.svg",
 		"scripts/sync-upstream.mjs",
+		"scripts/release-notes.mjs",
 		"scripts/upstream-brand.json",
 		"scripts/upstream-sync-lib.mjs",
-		"test/upstream-sync.test.js"
+		"test/upstream-sync.test.js",
+		"test/lmao-credentials.test.js"
 	],
 	"retiredPaths": [
 		"credentials/maibaoapi.png",

@@ -91,7 +91,10 @@ export function transformBrandDocument(content, config) {
 		.replaceAll('n8n-nodes-MaibaoAPI', brand.packageName)
 		.replaceAll('n8n-nodes-maibaoapi', brand.packageName)
 		.replaceAll('https://maibaoapi.apifox.cn/', brand.apiOrigin)
-		.replaceAll('https://api.maibao.chat', brand.apiOrigin)
+		.replaceAll('https://api.maibao.chat', brand.alternativeApiOrigin)
+		.replaceAll('https://ai.maibao.chat', brand.apiOrigin)
+		.replaceAll('api.maibao.chat', new URL(brand.alternativeApiOrigin).host)
+		.replaceAll('ai.maibao.chat', new URL(brand.apiOrigin).host)
 		.replaceAll('MaibaoAPI', brand.displayName)
 		.replaceAll('麦包平台', '龙猫平台');
 }
@@ -108,6 +111,13 @@ export function transformChangelog(content, config) {
 		}
 		const nextVersionStart = output.indexOf('\n## [', versionStart + versionHeader.length);
 		const insertAt = nextVersionStart === -1 ? output.length : nextVersionStart;
+		const sectionHeader = `\n### ${patch.section}\n`;
+		const sectionStart = output.indexOf(sectionHeader, versionStart);
+		if (sectionStart !== -1 && sectionStart < insertAt) {
+			const entriesStart = sectionStart + sectionHeader.length;
+			output = `${output.slice(0, entriesStart)}\n${missingEntries.map((entry) => `- ${entry}`).join('\n')}\n${output.slice(entriesStart)}`;
+			continue;
+		}
 		const addition = `\n### ${patch.section}\n\n${missingEntries.map((entry) => `- ${entry}`).join('\n')}\n`;
 		output = `${output.slice(0, insertAt).trimEnd()}\n${addition}${output.slice(insertAt).replace(/^\n/, '')}`;
 	}
@@ -165,7 +175,7 @@ export function transformNodeSource(content, config) {
 	for (const [anchor, label] of [
 		["displayName: 'MaibaoAPI'", 'node display name'],
 		["name: 'maibaoApi'", 'node internal credential name'],
-		["icon: 'file:maibaoapi.png'", 'node icon'],
+		["icon: 'file:maibaoapi.svg'", 'node icon'],
 		["credentials: [{ name: 'maibaoApi', required: true }]", 'node credential declaration'],
 		["this.getCredentials('maibaoApi')", 'node credential lookup'],
 		[
@@ -189,7 +199,7 @@ export function transformNodeSource(content, config) {
 			`\t\tconst configuredBaseUrl = (credentials.${brand.credentialBaseUrlName} as string | undefined)?.trim();`,
 			'\t\tconst legacyBaseUrl = (credentials.baseUrl as string | undefined)?.trim();',
 			'\t\tconst legacyCustomBaseUrl =',
-			'\t\t\tlegacyBaseUrl && !/^https:\\/\\/api\\.maibao\\.chat(?:\\/v1)?\\/?$/i.test(legacyBaseUrl)',
+			'\t\t\tlegacyBaseUrl && !/^https:\\/\\/(?:api|ai)\\.maibao\\.chat(?:\\/v1)?\\/?$/i.test(legacyBaseUrl)',
 			'\t\t\t\t? legacyBaseUrl',
 			'\t\t\t\t: undefined;',
 			`\t\tconst baseUrl = (configuredBaseUrl || legacyCustomBaseUrl || '${brand.apiOrigin}').replace(/\\/+$/, '');`,
@@ -211,8 +221,10 @@ export function transformCredentialSource(content, config) {
 		["name = 'maibaoApi';", 'credential internal name'],
 		["displayName = 'MaibaoAPI API';", 'credential display name'],
 		["name: 'baseUrl',", 'credential Base URL property name'],
-		["type: 'hidden',", 'credential Base URL type'],
-		["default: 'https://api.maibao.chat/v1',", 'credential Base URL default'],
+		["type: 'options',", 'credential Base URL type'],
+		["value: 'https://api.maibao.chat/v1',", 'credential alternative API URL'],
+		["value: 'https://ai.maibao.chat/v1',", 'credential default API URL'],
+		["default: 'https://ai.maibao.chat/v1',", 'credential Base URL default'],
 		["baseURL: '={{$credentials.baseUrl}}',", 'credential test base URL'],
 		["url: '/models',", 'credential test URL'],
 	]) {
@@ -227,27 +239,32 @@ export function transformCredentialSource(content, config) {
 		.replaceAll('file:maibaoapi.png', 'file:maibaoapi.svg')
 		.replaceAll("documentationUrl = 'https://maibaoapi.apifox.cn/';", `documentationUrl = '${brand.apiOrigin}';`)
 		.replaceAll("name: 'baseUrl',", `name: '${brand.credentialBaseUrlName}',`)
-		.replaceAll("type: 'hidden',", "type: 'string',")
+		.replaceAll('https://api.maibao.chat', brand.alternativeApiOrigin)
+		.replaceAll('https://ai.maibao.chat', brand.apiOrigin)
 		.replaceAll(
-			"default: 'https://api.maibao.chat/v1',",
-			[
-				`default: '${brand.apiOrigin}',`,
-				`\t\t\tdescription: '高级覆盖项。默认使用 ${brand.displayName} 官方地址，仅在自定义兼容网关时修改。',`,
-			].join('\n'),
-		)
-		.replaceAll(
-			"\t\t\tbaseURL: '={{$credentials.baseUrl}}',\n\t\t\turl: '/models',",
-			`\t\t\turl: '={{(($credentials.${brand.credentialBaseUrlName} || "").replace(/\\\\\/+$/, "").endsWith("/v1") ? ($credentials.${brand.credentialBaseUrlName} || "").replace(/\\\\\/+$/, "") : ($credentials.${brand.credentialBaseUrlName} || "").replace(/\\\\\/+$/, "") + "/v1") + "/models"}}',`,
+			"baseURL: '={{$credentials.baseUrl}}',",
+			String.raw`baseURL: '={{($credentials.${brand.credentialBaseUrlName} || "${brand.apiBaseUrl}").trim().replace(/\\/+$/, "").replace(/(?:\\/v1)?$/, "/v1")}}',`,
 		);
 	return output;
 }
 
 export function transformReadme(content, config) {
-	return transformBrandDocument(content, config)
+	let output = transformBrandDocument(content, config)
+		.replaceAll('`master`', `\`${config.brand.branch}\``)
 		.replaceAll('Node.js `22.x`', 'Node.js `24.x`')
 		.replaceAll('`.n8n-dev-server/`', '`.n8n-dev-server-node24/`')
 		.replaceAll('`.npm-n8n-cache/`', '`.npm-n8n-cache-node24/`')
-		.replaceAll('优先切到 Node.js 22', '优先确认当前 shell 使用 Node.js 24');
+		.replaceAll('优先切到 Node.js 22', '优先确认当前 shell 使用 Node.js 24')
+		.replaceAll('先构建，再运行全部 Node.js 回归测试', '运行全部回归测试（需先构建）');
+	for (const patch of config.changelogPatches ?? []) {
+		const heading = `## ${patch.version} 更新内容\n`;
+		if (!output.includes(heading)) continue;
+		const additions = patch.entries.filter((entry) => !output.includes(entry));
+		if (additions.length) {
+			output = output.replace(heading, `${heading}\n${additions.map((entry) => `- ${entry}`).join('\n')}\n`);
+		}
+	}
+	return output;
 }
 
 export function transformGitignore(content) {
@@ -259,8 +276,10 @@ export function transformGitignore(content) {
 	return `${lines.join('\n')}\n`;
 }
 
-export function transformCiWorkflow(content) {
-	let output = normalizeText(content).replace(/node-version: ['"]22['"]/, "node-version: '24'");
+export function transformCiWorkflow(content, config) {
+	let output = normalizeText(content)
+		.replace(/node-version: ['"]22['"]/, "node-version: '24'")
+		.replace(/^(\s*- )master$/m, `$1${config.brand.branch}`);
 	if (!output.includes('npm test')) {
 		output = `${output.trimEnd()}\n\n      - name: Run tests\n        run: 'npm test'\n`;
 	}
@@ -430,7 +449,7 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 				fullPath,
 				relativePath === 'CHANGELOG.md'
 					? transformChangelog(content, config)
-					: transformBrandDocument(content, config),
+					: transformBrandDocument(content, config).replaceAll('`master`', `\`${config.brand.branch}\``),
 			);
 		}
 	}
@@ -445,6 +464,21 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		projectIndex.version = brandedPackage.version;
 		projectIndex.projectName = config.brand.packageName;
 		projectIndex.repository = config.brand.repository.replace(/^git\+/, '');
+		projectIndex.scripts = brandedPackage.scripts;
+		if (projectIndex.modules?.MaibaoApiCredentials) {
+			projectIndex.modules.MaibaoApiCredentials.properties = ['apiKey', config.brand.credentialBaseUrlName];
+		}
+		if (projectIndex.statistics) {
+			projectIndex.statistics.testFiles = fs.readdirSync(path.join(candidateRoot, 'test')).filter((file) => file.endsWith('.test.js')).length;
+		}
+		if (projectIndex.release?.branch) projectIndex.release.branch = config.brand.branch;
+		if (projectIndex.ci) {
+			projectIndex.ci.nodeVersion = config.brand.nodeEngine.replace('.x', '');
+			projectIndex.ci.triggers = projectIndex.ci.triggers.map((trigger) =>
+				trigger === 'push:master' ? `push:${config.brand.branch}` : trigger,
+			);
+			if (!projectIndex.ci.steps.includes('npm test')) projectIndex.ci.steps.push('npm test');
+		}
 		if (Array.isArray(projectIndex.credentials?.type?.properties)) {
 			projectIndex.credentials.type.properties = projectIndex.credentials.type.properties.map((property) =>
 				property === 'baseUrl' ? config.brand.credentialBaseUrlName : property,
@@ -458,8 +492,8 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		const projectIndexMarkdown = fs
 			.readFileSync(projectIndexMarkdownPath, 'utf8')
 			.replace(
-				/`baseUrl` - API base URL \(default: `https:\/\/api\.lmao\.net\.cn\/v1`\)/,
-				`\`${config.brand.credentialBaseUrlName}\` - API base URL (default: \`${config.brand.apiOrigin}\`)`,
+				'`baseUrl` - Selectable API base URL',
+				`\`${config.brand.credentialBaseUrlName}\` - Selectable API base URL`,
 			);
 		fs.writeFileSync(projectIndexMarkdownPath, projectIndexMarkdown);
 	}
@@ -468,8 +502,24 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 	fs.writeFileSync(gitignorePath, transformGitignore(fs.readFileSync(gitignorePath, 'utf8')));
 	const ciPath = path.join(candidateRoot, '.github', 'workflows', 'ci.yml');
 	if (fs.existsSync(ciPath)) {
-		fs.writeFileSync(ciPath, transformCiWorkflow(fs.readFileSync(ciPath, 'utf8')));
+		fs.writeFileSync(ciPath, transformCiWorkflow(fs.readFileSync(ciPath, 'utf8'), config));
 	}
+	const releaseConfigPath = path.join(candidateRoot, '.release-it.json');
+	if (fs.existsSync(releaseConfigPath)) {
+		const releaseConfig = readJson(releaseConfigPath);
+		releaseConfig.git.requireBranch = config.brand.branch;
+		releaseConfig.npm.publish = false;
+		releaseConfig.github.releaseNotes = 'node scripts/release-notes.mjs ${version}';
+		writeJson(releaseConfigPath, releaseConfig);
+	}
+	const credentialTestPath = path.join(candidateRoot, 'test', 'credentials.test.js');
+	fs.writeFileSync(
+		credentialTestPath,
+		transformBrandDocument(fs.readFileSync(credentialTestPath, 'utf8'), config).replaceAll(
+			"property.name === 'baseUrl'",
+			`property.name === '${config.brand.credentialBaseUrlName}'`,
+		),
+	);
 	const devScriptPath = path.join(candidateRoot, 'scripts', 'dev.mjs');
 	fs.writeFileSync(devScriptPath, transformDevScript(fs.readFileSync(devScriptPath, 'utf8')));
 	const devScriptTestPath = path.join(candidateRoot, 'test', 'dev-script-config.test.js');
@@ -510,7 +560,7 @@ export function assertCandidateBranding(candidateRoot, config, expectedVersion) 
 		'credentials/MaibaoApi.credentials.ts',
 		'test_timestamp_granularities.bat',
 	];
-	const forbidden = /MaibaoAPI|maibaoApi|api\.maibao\.chat|n8n-nodes-maibaoapi/;
+	const forbidden = /MaibaoAPI|maibaoApi|(?:api|ai)\.maibao\.chat|n8n-nodes-maibaoapi/;
 	for (const relativePath of brandSurfaces) {
 		const content = fs.readFileSync(resolveManagedPath(candidateRoot, relativePath), 'utf8');
 		if (forbidden.test(content)) {
@@ -536,7 +586,10 @@ export function assertCandidateBranding(candidateRoot, config, expectedVersion) 
 	);
 	if (
 		!credentialSource.includes(`name: '${config.brand.credentialBaseUrlName}'`) ||
-		!credentialSource.includes(`default: '${config.brand.apiOrigin}'`)
+		!credentialSource.includes("type: 'options'") ||
+		!credentialSource.includes(`default: '${config.brand.apiBaseUrl}'`) ||
+		!credentialSource.includes(`value: '${config.brand.apiBaseUrl}'`) ||
+		!credentialSource.includes(`value: '${config.brand.alternativeApiOrigin}/v1'`)
 	) {
 		throw new Error('Credential Base URL invariant failed');
 	}

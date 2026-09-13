@@ -8,10 +8,9 @@ This is an n8n community node package that provides integration with LmaoAPI (ht
 
 **Key Features:**
 - Text generation with multimodal support (text + images)
-- Image generation (Gemini models, 即梦 5.0)
-- Video generation (Sora 2)
-- Vector embeddings
-- Automatic Base64 conversion for images
+- Image generation (GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2)
+- Audio transcription (Whisper-1)
+- GPT Image Base64/URL responses converted to Binary, with original URLs in `json.imageUrl`
 - Cross-node Binary data reading
 
 ## Development Commands
@@ -32,9 +31,11 @@ npm run lint:fix
 # Development mode with n8n
 npm run dev
 
-# Release (uses release-it)
+# GitHub release only; npm publishing is manual (uses release-it)
 npm run release
 ```
+
+When the package version is already updated, use `npm run release -- --no-increment` (uses the version already in package.json). The release configuration disables npm publishing and npm authentication checks; the maintainer runs `npm publish` separately.
 
 ## Architecture
 
@@ -48,7 +49,7 @@ npm run release
 
 **MaibaoApi Node** (`nodes/MaibaoApi/MaibaoApi.node.ts`):
 - Implements `INodeType` interface from n8n-workflow
-- Supports 4 modes: text, image, video, embeddings
+- Exposes 3 modes: text, image, audio; video and embeddings remain hidden
 - Handles Binary data collection from current or specified nodes
 - Automatic image extraction and Base64 conversion
 
@@ -59,15 +60,19 @@ npm run release
 ### API Integration
 
 **Base URLs:**
-- Standard API: `https://api.lmao.net.cn/v1`
-- Sora API: `https://api.lmao.net.cn` (v1 suffix removed)
+- Default API: `https://ai.lmao.net.cn/v1`
+- Alternative API: `https://api.lmao.net.cn/v1`
+- Sora API: selected API domain with the `/v1` suffix removed
 
 **Endpoints:**
 - Text: `POST /v1/chat/completions`
 - Image (Gemini): `POST /v1beta/models/{model}:generateContent`
-- Image (即梦): `POST /v1/images/generations`
-- Video: `POST /v1/videos`, `GET /v1/videos/{id}`, etc.
-- Embeddings: `POST /v1/embeddings`
+- Image (GPT Image): `POST /v1/images/generations`, multipart `POST /v1/images/edits`
+- Audio: `POST /v1/audio/transcriptions`
+- Video (hidden): `POST /v1/videos`, `GET /v1/videos/{id}`, etc.
+- Embeddings (hidden): `POST /v1/embeddings`
+
+GPT Image model values map to their corresponding `-c` provider IDs. Only the two 2.5 models expose `xhigh`/`max` quality and background settings. Transparent backgrounds require PNG or WebP. Nano Banana 1 Pro and Jimeng 5.0 have been removed; existing workflows using them fail before a generation request and must reselect a model.
 
 ### Binary Data Handling
 
@@ -77,7 +82,7 @@ The node supports two Binary source modes:
 
 When collecting from specified nodes, the function pre-reads Binary data stored in the file system (identified by `binaryData.id`) to avoid context issues when accessing cross-node data.
 
-### Video Generation (Sora 2)
+### Video Generation (Sora 2, hidden)
 
 - Supports storyboard mode with multiple shots
 - Smart polling: checks video status every 15 seconds (max 10 minutes)
@@ -95,15 +100,17 @@ When collecting from specified nodes, the function pre-reads Binary data stored 
 ## Testing & CI
 
 CI runs on GitHub Actions (.github/workflows/ci.yml):
-- Node.js 22
-- Runs `npm ci`, `npm run lint`, `npm run build`
-- Triggers on pull requests and pushes to main branch
+- Node.js 24
+- Runs `npm ci`, `npm run lint`, `npm run build`, `npm test`
+- Triggers on pull requests and pushes to `main`
+
+Run `npm run build` followed by `npm test` locally to execute the regression suite, including image model configuration, Base64/URL responses and node execution.
 
 ## Important Notes
 
 - The node is marked as `usableAsTool: true` for AI agent integration
 - Supports n8n API version 1 (`n8nNodesApiVersion: 1`)
 - When reading Binary from specified nodes, always use the pre-read `bufferMap` to avoid file system access issues
-- Image properties default to: `data, data0, data1, data2, file, attachment`
-- Maximum 3 images supported for text/image generation
+- Image properties default to: `data, data0, data1, data2, data3, data4, data5`
+- Maximum 10 images supported for text/image generation
 - Video download timeout: 300 seconds (5 minutes)

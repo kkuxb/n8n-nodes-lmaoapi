@@ -1,6 +1,15 @@
 export type GptImageBackground = 'auto' | 'opaque' | 'transparent';
 export type GptImageOutputFormat = 'png' | 'jpeg' | 'webp';
-export type GptImageQuality = 'auto' | 'low' | 'medium' | 'high';
+export type GptImageQuality = 'auto' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
+const GPT_IMAGE_MODEL_IDS: Record<string, string> = {
+	'gpt-image-2': 'gpt-image-2-c',
+	'gpt-image-2.5-sunburst': 'gpt-image-2.5-sunburst-c',
+	'gpt-image-2.5-flare': 'gpt-image-2.5-flare-c',
+};
+
+export const GPT_IMAGE_25_MODELS = ['gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'];
+export const GPT_IMAGE_MODELS = ['gpt-image-2', ...GPT_IMAGE_25_MODELS];
 
 export interface GptImageInput {
 	base64: string;
@@ -39,12 +48,12 @@ const GPT_IMAGE_MAX_SIDE = 3840;
 const GPT_IMAGE_MAX_RATIO = 3;
 const GPT_IMAGE_DIMENSION_MULTIPLE = 16;
 
-function normalizeGptImageBackground(background: GptImageBackground): string {
-	return background === 'transparent' ? 'transparent_background' : background;
+export function isGptImage25Model(model: string): boolean {
+	return GPT_IMAGE_25_MODELS.includes(model);
 }
 
 export function isGptImageModel(model: string): boolean {
-	return model === 'gpt-image-2';
+	return GPT_IMAGE_MODELS.includes(model);
 }
 
 export function resolveGptImageSize(size: string, customSize?: string): string {
@@ -94,16 +103,22 @@ export function buildGptImageRequest(
 	model: string,
 	options: BuildGptImageRequestOptions,
 ): GptImageRequest {
+	if (!isGptImageModel(model)) {
+		throw new Error(`不支持的 GPT Image 模型：${model}`);
+	}
+	if (!isGptImage25Model(model) && ['xhigh', 'max'].includes(options.quality)) {
+		throw new Error('超高和最高质量仅支持 GPT-Image-2.5 模型。');
+	}
 	if (options.background === 'transparent' && options.outputFormat === 'jpeg') {
-		throw new Error('GPT-Image-2 透明背景仅支持 PNG 或 WEBP 输出格式。');
+		throw new Error('GPT Image 透明背景仅支持 PNG 或 WEBP 输出格式。');
 	}
 
 	const sharedBody: Record<string, unknown> = {
-		model: model === 'gpt-image-2' ? 'gpt-image-2-c' : model,
+		model: GPT_IMAGE_MODEL_IDS[model],
 		prompt: options.prompt,
 		size: options.size,
 		quality: options.quality,
-		background: normalizeGptImageBackground(options.background),
+		background: options.background,
 		output_format: options.outputFormat,
 		n: 1,
 	};
@@ -114,7 +129,7 @@ export function buildGptImageRequest(
 		endpoint: options.images.length > 0 ? '/images/edits' : '/images/generations',
 		body: sharedBody,
 		usesMultipart: options.images.length > 0,
-		outputFileName: `gpt_image_2.${extension}`,
+		outputFileName: `${model.replace(/[.-]/g, '_')}.${extension}`,
 		outputMimeType: `image/${mimeSubtype}`,
 	};
 

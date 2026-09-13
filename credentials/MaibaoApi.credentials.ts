@@ -4,7 +4,7 @@ export class MaibaoApi implements ICredentialType {
 	name = 'lmaoApi';
 	displayName = 'LmaoAPI API';
 	icon = { light: 'file:maibaoapi.svg', dark: 'file:maibaoapi.svg' } as const;
-	documentationUrl = 'https://api.lmao.net.cn';
+	documentationUrl = 'https://ai.lmao.net.cn';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',
@@ -15,16 +15,26 @@ export class MaibaoApi implements ICredentialType {
 			required: true,
 		},
 		{
-			displayName: 'Base URL',
+			displayName: 'API 地址',
 			name: 'lmaoBaseUrl',
-			type: 'string',
-			default: 'https://api.lmao.net.cn',
-			description: '高级覆盖项。默认使用 LmaoAPI 官方地址，仅在自定义兼容网关时修改。',
+			type: 'options',
+			options: [
+				{
+					name: 'https://api.lmao.net.cn',
+					value: 'https://api.lmao.net.cn/v1',
+				},
+				{
+					name: 'https://ai.lmao.net.cn',
+					value: 'https://ai.lmao.net.cn/v1',
+				},
+			],
+			default: 'https://ai.lmao.net.cn/v1',
 		},
 	];
 	test: ICredentialTestRequest = {
 		request: {
-			url: '={{(($credentials.lmaoBaseUrl || "").replace(/\\/+$/, "").endsWith("/v1") ? ($credentials.lmaoBaseUrl || "").replace(/\\/+$/, "") : ($credentials.lmaoBaseUrl || "").replace(/\\/+$/, "") + "/v1") + "/models"}}',
+			baseURL: '={{($credentials.lmaoBaseUrl || "https://ai.lmao.net.cn/v1").trim().replace(/\\/+$/, "").replace(/(?:\\/v1)?$/, "/v1")}}',
+			url: '/models',
 			headers: {
 				Authorization: '=Bearer {{$credentials.apiKey}}',
 			},
