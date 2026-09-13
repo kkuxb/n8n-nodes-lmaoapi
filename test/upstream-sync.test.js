@@ -127,10 +127,11 @@ test('required branding anchors fail closed when upstream structure changes', as
 
 test('CI and release documentation target the LmaoAPI main branch', async () => {
 	const { transformCiWorkflow, transformReadme } = await libraryPromise;
-	const workflow = transformCiWorkflow("push:\n  branches:\n    - master\nnode-version: '22'\n", config);
+	const workflow = transformCiWorkflow("push:\n  branches:\n    - master\nnode-version: '22'\n    runs-on: ubuntu-latest\n", config);
 	assert.match(workflow, /- main/);
 	assert.match(workflow, /node-version: '24'/);
 	assert.match(workflow, /npm test/);
+	assert.match(workflow, /LANG: zh_CN.UTF-8/);
 	assert.equal(transformReadme('在 `master` 分支完成测试后发布。', config), '在 `main` 分支完成测试后发布。');
 });
 

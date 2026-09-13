@@ -280,6 +280,9 @@ export function transformCiWorkflow(content, config) {
 	let output = normalizeText(content)
 		.replace(/node-version: ['"]22['"]/, "node-version: '24'")
 		.replace(/^(\s*- )master$/m, `$1${config.brand.branch}`);
+	if (!output.includes('LANG: zh_CN.UTF-8')) {
+		output = output.replace('    runs-on: ubuntu-latest', '    runs-on: ubuntu-latest\n    env:\n      LANG: zh_CN.UTF-8');
+	}
 	if (!output.includes('npm test')) {
 		output = `${output.trimEnd()}\n\n      - name: Run tests\n        run: 'npm test'\n`;
 	}
