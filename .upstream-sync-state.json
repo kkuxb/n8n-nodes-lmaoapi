@@ -2,8 +2,8 @@
   "upstream": {
     "url": "https://github.com/kkuxb/n8n-nodes-maibaoapi.git",
     "branch": "master",
-    "commit": "8804c5c2bbd903799f2037ba680628d02368da53",
-    "version": "1.4.0"
+    "commit": "5372480f8f1e6ca94c82e630e5410305711e3d4c",
+    "version": "1.4.1"
   },
   "managedPaths": [
     ".claude/settings.local.json",
@@ -33,7 +33,12 @@
     "credentials/maibaoapi.svg",
     "docs/plans/2026-08-21-item-linking-design.md",
     "docs/plans/2026-09-01-api-base-url-design.md",
+    "docs/plans/2026-09-13-v1.4.1-image-download-design.md",
+    "docs/superpowers/plans/2026-09-13-v1.4.1-download-implementation.md",
+    "docs/superpowers/probes/n8n-141-runtime.cjs",
     "eslint.config.mjs",
+    "nodes/MaibaoApi/GptImageDiagnostics.ts",
+    "nodes/MaibaoApi/GptImageDownload.ts",
     "nodes/MaibaoApi/GptImageResponse.ts",
     "nodes/MaibaoApi/GptImageUtils.ts",
     "nodes/MaibaoApi/MaibaoApi.node.ts",
@@ -49,6 +54,7 @@
     "test/credentials.test.js",
     "test/dev-script-config.test.js",
     "test/gpt-image-2.test.js",
+    "test/gpt-image-download.test.js",
     "test/gpt-image-response.test.js",
     "test/image-generation-config.test.js",
     "test/item-linking.test.js",

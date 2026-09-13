@@ -22,6 +22,8 @@ import {
 	resolveGptImageSize,
 } from './GptImageUtils';
 import { resolveGptImageResponse } from './GptImageResponse';
+import { downloadGptImage } from './GptImageDownload';
+import { asObject, GptImageError, ImageDiagnostics, responseRequestId, responseStatus, safeToken } from './GptImageDiagnostics';
 
 const REQUEST_TIMEOUT_MS = 600000;
 
@@ -506,12 +508,13 @@ export class MaibaoApi implements INodeType {
 				name: 'videoOperation',
 				type: 'options',
 				displayOptions: { show: { mode: ['video'] } },
+				// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items -- Keep workflow order regardless of the runner's Chinese/English locale.
 				options: [
 					{ name: '创建视频', value: 'create' },
 					{ name: '混编/修改视频', value: 'remix' },
 					{ name: '检索视频', value: 'retrieve' },
-					{ name: '列出视频', value: 'list' },
 					{ name: '下载视频', value: 'download' },
+					{ name: '列出视频', value: 'list' },
 				],
 				default: 'create',
 			},
@@ -528,6 +531,13 @@ export class MaibaoApi implements INodeType {
 					{ name: 'Nano Banana 2', value: 'gemini-3.1-flash-image-preview' },
 				],
 				default: 'gpt-image-2',
+			},
+			{
+				displayName: '结果图片下载每次最多 20 秒，最多重试 3 次，含等待总计不超过 80 秒。请关闭整个节点的失败自动重试，避免重复生图扣费；下载失败后可从错误详情复制 imageUrl 单独下载。',
+				name: 'imageDownloadNotice',
+				type: 'notice',
+				displayOptions: { show: { mode: ['image'], imageModel: GPT_IMAGE_MODELS } },
+				default: '',
 			},
 			{
 				displayName: '生成模型',
@@ -1087,27 +1097,33 @@ export class MaibaoApi implements INodeType {
 								? Object.keys(buildGptImageMultipartFormData(requestConfig.body))
 								: [],
 						});
-						const response = await this.helpers.httpRequest({
-							method: 'POST',
-							url: `${rawBaseUrl}${requestConfig.endpoint}`,
-							headers: { Authorization: `Bearer ${credentials.apiKey}` },
-							body: requestConfig.usesMultipart
-								? buildNativeMultipartBody(this, buildGptImageMultipartFormData(requestConfig.body)) as never
-								: requestConfig.body,
-							json: !requestConfig.usesMultipart,
-							returnFullResponse: true,
-							timeout: REQUEST_TIMEOUT_MS,
-						});
+						let diagnostics: ImageDiagnostics = { stage: 'generation_request' };
 						try {
-							const result = await resolveGptImageResponse(response.body, async (url) => {
-								const downloaded = await this.helpers.httpRequest({
-									method: 'GET',
-									url,
-									encoding: 'arraybuffer',
-									timeout: REQUEST_TIMEOUT_MS,
-								});
-								return Buffer.from(downloaded);
+							const response = await this.helpers.httpRequest({
+								method: 'POST',
+								url: `${rawBaseUrl}${requestConfig.endpoint}`,
+								headers: { Authorization: `Bearer ${credentials.apiKey}` },
+								body: requestConfig.usesMultipart
+									? buildNativeMultipartBody(this, buildGptImageMultipartFormData(requestConfig.body)) as never
+									: requestConfig.body,
+								json: !requestConfig.usesMultipart,
+								returnFullResponse: true,
+								timeout: REQUEST_TIMEOUT_MS,
 							});
+							diagnostics = {
+								stage: 'response_parse',
+								generationStatusCode: responseStatus(response),
+								generationRequestId: responseRequestId(response.headers),
+							};
+							const result = await resolveGptImageResponse(response.body, (url) => downloadGptImage(
+								url,
+								async (downloadUrl, timeout, abortSignal) => this.helpers.httpRequest({
+									method: 'GET', url: downloadUrl, encoding: 'arraybuffer',
+									returnFullResponse: true, timeout, abortSignal,
+								}),
+								{ signal: this.getExecutionCancelSignal?.() },
+							));
+							diagnostics = { ...diagnostics, ...result.diagnostics, stage: 'binary_output' };
 							const binaryOutput = await this.helpers.prepareBinaryData(
 								result.buffer,
 								requestConfig.outputFileName.replace(/\.[^.]+$/, `.${result.extension}`),
@@ -1115,20 +1131,35 @@ export class MaibaoApi implements INodeType {
 							);
 							pushExecutionData(returnData, i, {
 								json: {
-									status: 'success',
-									model: imageModel,
-									endpoint: requestConfig.endpoint,
+									status: 'success', model: imageModel, endpoint: requestConfig.endpoint,
 									hasReferenceImages: extractedImages.length > 0,
 									...(result.imageUrl ? { imageUrl: result.imageUrl } : {}),
 								},
 								binary: { data: binaryOutput },
 							});
 						} catch (error) {
-							const rawRequestId = response.headers?.['x-request-id'] ?? response.headers?.['x-oneapi-request-id'];
-							const requestId = typeof rawRequestId === 'string'
-								? rawRequestId.replace(/[^\w.-]/g, '').slice(0, 160)
-								: '';
-							throw new NodeOperationError(this.getNode(), `${imageModel}：${error.message}（HTTP ${response.statusCode}${requestId ? `；请求 ID：${requestId}` : ''}）`);
+							let message: string;
+							if (error instanceof GptImageError) {
+								diagnostics = { ...diagnostics, ...error.diagnostics };
+								message = error.message;
+							} else if (diagnostics.stage === 'generation_request') {
+								const object = asObject(error);
+								diagnostics.generationStatusCode = responseStatus(object.response) ?? responseStatus(object);
+								diagnostics.generationRequestId = responseRequestId(asObject(object.response).headers);
+								diagnostics.errorCode = safeToken(object.code);
+								message = '生图请求失败，未进入结果图片下载阶段。';
+							} else {
+								message = diagnostics.stage === 'binary_output'
+									? '图片已解析，但写入 n8n Binary 失败。' : '生图响应处理失败。';
+							}
+							const status = diagnostics.generationStatusCode ? `；生图 HTTP ${diagnostics.generationStatusCode}` : '';
+							const requestId = diagnostics.generationRequestId ? `；请求 ID：${diagnostics.generationRequestId}` : '';
+							const operationError = new NodeOperationError(this.getNode(), `${imageModel}：${message}${status}${requestId}`, {
+								itemIndex: i,
+								description: '诊断及恢复下载信息（imageUrl 为临时访问链接，仅在执行详情中保留）：\n' + JSON.stringify(diagnostics, null, 2),
+							});
+							operationError.context.imageDownload = diagnostics;
+							throw operationError;
 						}
 
 					} else {
@@ -1394,7 +1425,13 @@ export class MaibaoApi implements INodeType {
 						: errorObject?.response?.body ?? null,
 				});
 				if (this.continueOnFail()) {
-					pushExecutionData(returnData, i, { json: { error: error.message } });
+					const imageDownload = error instanceof NodeOperationError ? error.context.imageDownload : undefined;
+					const imageUrl = asObject(imageDownload).imageUrl;
+					pushExecutionData(returnData, i, { json: {
+						error: error.message,
+						...(imageDownload ? { imageDownload } : {}),
+						...(typeof imageUrl === 'string' ? { imageUrl } : {}),
+					} });
 					continue;
 				}
 				throw new NodeOperationError(this.getNode(), error);

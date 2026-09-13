@@ -96,6 +96,7 @@ export function transformBrandDocument(content, config) {
 		.replaceAll('api.maibao.chat', new URL(brand.alternativeApiOrigin).host)
 		.replaceAll('ai.maibao.chat', new URL(brand.apiOrigin).host)
 		.replaceAll('MaibaoAPI', brand.displayName)
+		.replaceAll('麦包 API Key', `${brand.displayName} API Key`)
 		.replaceAll('麦包平台', '龙猫平台');
 }
 
@@ -255,7 +256,10 @@ export function transformReadme(content, config) {
 		.replaceAll('`.n8n-dev-server/`', '`.n8n-dev-server-node24/`')
 		.replaceAll('`.npm-n8n-cache/`', '`.npm-n8n-cache-node24/`')
 		.replaceAll('优先切到 Node.js 22', '优先确认当前 shell 使用 Node.js 24')
-		.replaceAll('先构建，再运行全部 Node.js 回归测试', '运行全部回归测试（需先构建）');
+		.replaceAll('先构建，再运行全部 Node.js 回归测试', '运行全部回归测试（需先构建）')
+		.replace(/npm run release -- \d+\.\d+\.\d+ --npm\.allowSameVersion/g, 'npm run release -- --no-increment')
+		.replace(/如果已手动更新版本号[^\n]+：/, '版本号已更新时，使用 `--no-increment` 保持 package.json 中的版本不变：')
+		.replace('GitHub 发布需要配置相应认证。', 'GitHub 发布说明自动读取 CHANGELOG 对应版本。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。');
 	for (const patch of config.changelogPatches ?? []) {
 		const heading = `## ${patch.version} 更新内容\n`;
 		if (!output.includes(heading)) continue;
@@ -265,6 +269,17 @@ export function transformReadme(content, config) {
 		}
 	}
 	return output;
+}
+
+export function transformDeveloperDocument(content, config) {
+	return transformBrandDocument(content, config)
+		.replace(/npm run release -- \d+\.\d+\.\d+ --npm\.allowSameVersion/g, 'npm run release -- --no-increment')
+		.replace(/\(replace `\d+\.\d+\.\d+` with the target version\)/g, '(uses the version already in package.json)')
+		.replaceAll('`master`', `\`${config.brand.branch}\``)
+		.replaceAll('Node.js 22', 'Node.js 24')
+		.replaceAll('**Node Version:** 22', '**Node Version:** 24')
+		.replace(/`npm test` builds and runs \w+ test files/g, 'After building, `npm test` runs all test files')
+		.replaceAll('Run `npm test` locally to build and execute', 'Run `npm run build` followed by `npm test` locally to execute');
 }
 
 export function transformGitignore(content) {
@@ -285,6 +300,9 @@ export function transformCiWorkflow(content, config) {
 	}
 	if (!output.includes('npm test')) {
 		output = `${output.trimEnd()}\n\n      - name: Run tests\n        run: 'npm test'\n`;
+	}
+	if (!output.includes('npm run build')) {
+		output = output.replace("run: 'npm test'", "run: 'npm run build && npm test'");
 	}
 	return output;
 }
@@ -452,7 +470,7 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 				fullPath,
 				relativePath === 'CHANGELOG.md'
 					? transformChangelog(content, config)
-					: transformBrandDocument(content, config).replaceAll('`master`', `\`${config.brand.branch}\``),
+					: transformDeveloperDocument(content, config),
 			);
 		}
 	}

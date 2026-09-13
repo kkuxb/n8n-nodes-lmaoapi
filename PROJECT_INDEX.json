@@ -1,6 +1,6 @@
 {
   "projectName": "n8n-nodes-lmaoapi",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "n8n-community-node",
   "generated": "2026-09-13",
   "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
@@ -10,9 +10,9 @@
     "email": "263674673@qq.com"
   },
   "statistics": {
-    "totalSourceLines": 1681,
-    "sourceFiles": 4,
-    "testFiles": 9
+    "totalSourceLines": 2056,
+    "sourceFiles": 6,
+    "testFiles": 10
   },
   "structure": {
     "entryPoints": {
@@ -41,7 +41,7 @@
       "exports": [
         "MaibaoApi"
       ],
-      "lines": 1397,
+      "lines": 1434,
       "functions": [
         "execute",
         "collectBinaryFromNodes",
@@ -83,6 +83,14 @@
     "GptImageResponse": {
       "path": "nodes/MaibaoApi/GptImageResponse.ts",
       "purpose": "Resolve Base64 or URL images and detect PNG/JPEG/WebP MIME types"
+    },
+    "GptImageDownload": {
+      "path": "nodes/MaibaoApi/GptImageDownload.ts",
+      "purpose": "Bounded URL GET retries, cancellation and 20/80 second deadlines"
+    },
+    "GptImageDiagnostics": {
+      "path": "nodes/MaibaoApi/GptImageDiagnostics.ts",
+      "purpose": "Sanitized, serializable image failure diagnostics"
     }
   },
   "api": {
@@ -247,7 +255,7 @@
     "lint:fix": "n8n-node lint --fix",
     "test": "node --test test/*.test.js",
     "test:audio": "npm run build && node --test test/audio-transcription.test.js",
-    "test:gpt-image-2": "npm run build && node --test test/gpt-image-2.test.js test/gpt-image-response.test.js",
+    "test:gpt-image-2": "npm run build && node --test test/gpt-image-2.test.js test/gpt-image-response.test.js test/gpt-image-download.test.js",
     "release": "release-it",
     "sync-upstream": "node scripts/sync-upstream.mjs"
   },
@@ -268,7 +276,6 @@
     "steps": [
       "npm ci",
       "npm run lint",
-      "npm run build",
       "npm test"
     ],
     "triggers": [
@@ -300,7 +307,7 @@
       ]
     },
     "CHANGELOG.md": {
-      "latestVersion": "1.4.0",
+      "latestVersion": "1.4.1",
       "date": "2026-09-13"
     },
     "LICENSE.md": {
@@ -364,14 +371,27 @@
         "gemini-3-pro-image-preview",
         "doubao-seedream-5-0-260128"
       ],
-      "removedModelBehavior": "Fail before HTTP request; reselect a supported model"
+      "removedModelBehavior": "Fail before HTTP request; reselect a supported model",
+      "download": {
+        "attemptTimeoutMs": 20000,
+        "totalBudgetMs": 80000,
+        "maxAttempts": 4,
+        "maxRetries": 3,
+        "diagnosticsPath": "error.context.imageDownload",
+        "retryWholeNode": false
+      }
     }
   },
   "versionHistory": [
     {
-      "version": "1.4.0",
+      "version": "1.4.1",
       "date": "2026-09-13",
       "status": "current",
+      "notes": "Bounded download retries, recoverable failure URLs and diagnostics; cross-locale CI fix"
+    },
+    {
+      "version": "1.4.0",
+      "date": "2026-09-13",
       "notes": "GPT Image 2.5 models and quality/background controls; Base64/URL response fix; remove Nano Banana 1 Pro and Jimeng 5.0"
     },
     {

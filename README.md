@@ -15,7 +15,7 @@
 - **多种 Binary 来源**：可从当前节点输入、指定节点读取图片或音频；文字与图像模式还支持从 URL 获取图片。
 - **长任务超时**：所有 API 请求统一使用 600 秒超时。
 
-> 当前节点界面只开放上述三种模式。仓库中保留的视频与向量相关实现不属于 1.4.0 的公开节点功能。
+> 当前节点界面只开放上述三种模式。仓库中保留的视频与向量相关实现不属于 1.4.1 的公开节点功能。
 
 ## 安装
 
@@ -109,9 +109,31 @@ GPT-Image-2 的质量可选自动、低、中、高；输出格式可选 PNG、J
 - URL：自动下载图片至 `binary.data`，同时在 `json.imageUrl` 输出服务商返回的完整链接。
 - 两个字段同时存在：使用 Base64 图片并保留 `json.imageUrl`，避免额外下载。
 
-图片链接可能是临时签名链接，请及时保存 Binary 图片。URL 下载不附带麦包 API Key；下载失败会明确报错并附带生图请求 ID（若服务商提供），不会自动重复生图。
+图片链接可能是临时签名链接，请及时保存 Binary 图片。URL 下载不附带 LmaoAPI API Key；下载失败会明确报错并保留恢复信息。内部下载重试只访问同一图片 URL，不重新调用生图接口。
 
 [OpenAI 官方参数说明](https://developers.openai.com/api/reference/resources/images/methods/generate)明确 `response_format` 的 URL/Base64 选择适用于 DALL·E 2/3，不支持 GPT Image。因此三个 GPT Image 模型均不发送此参数，也没有返回模式选择器；对 URL 的支持用于兼容服务商实际响应。`output_format` 只选择 PNG/JPEG/WEBP 文件格式。
+
+### 下载重试与失败恢复（1.4.1）
+
+每次下载最多 **20 秒**，最多重试 **3 次**（包含首次共最多 4 次），整个下载阶段连同等待最多 **80 秒**。生图请求的等待时间不计入这 80 秒。重试通常等待约 2、5、10 秒，并增加少量随机间隔；剩余预算不足时缩短最后一次请求，或提前停止。HTTP 429/503 等响应中的 `Retry-After` 也受总预算限制。
+
+超时、连接中断及部分临时 HTTP 错误会触发下载重试；403、404、证书错误、无效 URL 和无法识别的图片内容不会盲目重试。取消执行时停止下载与等待。
+
+**请关闭整个生图节点的“失败时重试”。** n8n 的整体重试或手动重跑仍可能重新生图扣费，内部下载重试无法阻止跨执行的重新生成。
+
+最终失败仍然报错；在错误详情中可查看诊断 JSON，执行记录的 `error.context.imageDownload` 包含：
+
+| 字段 | 含义 |
+| --- | --- |
+| `stage` | 失败阶段：生图请求、响应解析、URL 校验、下载、格式识别、Binary 写入或取消 |
+| `imageUrl` | 已返回且可恢复下载的完整图片链接（如果存在） |
+| `generationStatusCode` / `generationRequestId` | 生图接口状态与请求 ID |
+| `attempts` | 每次下载的超时上限、耗时、状态码、异常名/代码、内容类型、已知字节数与下载请求 ID |
+| `elapsedMs` / `stopReason` | 累计下载耗时与停止原因 |
+
+未收到下载 HTTP 响应时，不会用生图的 HTTP 200 充当下载状态码。开启 Continue On Fail 时，错误输出仍保留输入关联，并额外提供 `json.imageDownload` 和可用的 `json.imageUrl`。
+
+恢复下载时，从错误详情复制 `imageUrl` 到独立的 HTTP Request 节点：方法选 GET、认证选 None、响应格式选 File，即可单独下载已有图片。链接可能过期，请及时保存；完整签名链接仅保留在执行详情中，不写入普通日志。
 
 ## 音频转文本
 
@@ -208,34 +230,23 @@ Windows 下如遇原生依赖、`node-gyp` 或 SQLite 构建问题，请先确�
 
 ## 发布版本
 
-在 `main` 分支完成 lint、构建、测试并提交全部修改后，用 release-it 推送代码与 tag、创建 GitHub Release。发布说明自动读取 CHANGELOG 中对应版本；npm 自动发布及登录检查已关闭，npm 由维护者手动发布。
+在 `main` 分支完成测试、提交并推送修改，确认远端 CI 通过后，使用 `npm run release` 发布 GitHub 版本。脚本会执行 lint 和构建、管理版本号、创建 Git tag、推送代码与 tag，并创建 GitHub Release；不执行 npm 发布，也不检查 npm 登录状态。
 
-GitHub 发布需要 `GITHUB_TOKEN`。已登录 GitHub CLI 时，可在 PowerShell 中临时使用当前账号的凭据：
-
-```powershell
-$env:GITHUB_TOKEN = gh auth token
-```
-
-本次版本号已同步为 `1.4.0`，使用 `--no-increment` 保持版本不变：
+版本号已更新时，使用 `--no-increment` 保持 package.json 中的版本不变：
 
 ```bash
 npm run release -- --no-increment --dry-run
 npm run release -- --no-increment
 ```
 
-GitHub 发布完成后，维护者可在该 tag 对应代码上执行 `npm publish`，并手动完成 npm 身份验证。
+GitHub 发布说明自动读取 CHANGELOG 对应版本。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。npm 发布由维护者在对应版本的代码上单独执行 `npm publish`，并手动完成身份验证。
 
-## 1.4.0 更新内容
+## 1.4.1 更新内容
 
-- 凭证 API 地址改为下拉框，默认使用 `https://ai.lmao.net.cn`，另可选择 `https://api.lmao.net.cn`；实际地址均带 `/v1`，保留 `lmaoBaseUrl` 字段及旧凭证地址兼容。
-- 节点和凭证统一采用真正的龙猫矢量 SVG Logo，裁去四周多余留白，完整保留图案和 LMAO 文字。
-- 更新上游同步规则，持续保留 LmaoAPI 域名、凭证、Logo 和发布说明；CI 与 GitHub 发布统一使用本仓库的 `main` 分支。
-
-- 新增 GPT-Image-2.5 Sunburst 和 Flare，依次置于图像模型下拉框最前方，请求时映射到对应的 `-c` 模型 ID；默认模型仍为 GPT-Image-2。
-- 修复服务商返回图片 URL 时误报“未返回图片”的问题。三个 GPT Image 模型均兼容 Base64 和 URL，URL 自动下载到 `binary.data`，并同步输出到 `json.imageUrl`。
-- 仅两个新模型增加超高（`xhigh`）、最高（`max`）质量与背景设置；透明背景支持 PNG/WEBP，暂不开放压缩设置。
-- 根据图片实际内容识别文件格式；区分无图片、服务商业务错误和下载失败，下载失败不会重新发起生图。
-- 移除 Nano Banana 1 Pro 和即梦 5.0。升级前请将使用这两个模型的工作流改为当前支持的模型，否则执行时会提示重新选择。
+- GPT Image 结果下载增加有界重试：单次 20 秒、最多重试 3 次、包含等待总计 80 秒，不重新生图。
+- 拆分失败阶段，记录下载异常与 HTTP 状态；失败时保留结果 URL，支持单独恢复下载。
+- 支持下载取消、Retry-After 与临时错误分类；保留原有成功输出和 Continue On Fail 的输入关联。
+- 修复隐藏视频操作顺序在不同语言环境下触发的 CI 排序检查问题。
 
 完整版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 

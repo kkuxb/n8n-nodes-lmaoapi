@@ -89,6 +89,10 @@ When collecting from specified nodes, the function pre-reads Binary data stored 
 - Reference image support via Binary input
 - Operations: create, remix, retrieve, download, list
 
+## GPT Image Download Recovery
+
+Use GptImageDownload for result URLs: 20 seconds per GET, at most four attempts, and 80 seconds including waits. Generation is not retried. Preserve safe diagnostics and recovery URLs in NodeOperationError.context.imageDownload and continueOnFail output. Do not log raw Axios errors or signed URLs. Whole-node retryOnFail can still repeat generation.
+
 ## Code Style
 
 - Uses tabs for indentation (tabWidth: 2)
@@ -101,7 +105,7 @@ When collecting from specified nodes, the function pre-reads Binary data stored 
 
 CI runs on GitHub Actions (.github/workflows/ci.yml):
 - Node.js 24
-- Runs `npm ci`, `npm run lint`, `npm run build`, `npm test`
+- Runs `npm ci`, `npm run lint`, `npm test` (includes build)
 - Triggers on pull requests and pushes to `main`
 
 Run `npm run build` followed by `npm test` locally to execute the regression suite, including image model configuration, Base64/URL responses and node execution.

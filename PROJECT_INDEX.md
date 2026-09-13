@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
 **Generated:** 2026-09-13
-**Version:** 1.4.0
+**Version:** 1.4.1
 **Type:** n8n Community Node Package
 
 ---
@@ -35,7 +35,7 @@ n8n-nodes-lmaoapi/
 └── LICENSE.md                      # MIT License
 ```
 
-**Total Source Code:** 1681 lines across 4 TypeScript files
+**Total Source Code:** 2056 lines across 6 TypeScript files
 
 ---
 
@@ -107,7 +107,7 @@ Video and embeddings code remains in the repository but is hidden from the publi
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.4.0
+- **Version:** 1.4.1
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`
@@ -150,8 +150,8 @@ Video and embeddings code remains in the repository but is hidden from the publi
 
 ### CHANGELOG.md
 
-- **Latest:** v1.4.0 (2026-09-13)
-- **Changes:** Add GPT Image 2.5, fix URL responses, remove Nano Banana 1 Pro and Jimeng 5.0
+- **Latest:** v1.4.1 (2026-09-13)
+- **Changes:** Bounded image download retries, failure recovery and diagnostics, cross-locale CI fix
 
 ### LICENSE.md
 
@@ -168,10 +168,9 @@ Video and embeddings code remains in the repository but is hidden from the publi
 - **Steps:**
   1. Install dependencies (`npm ci`)
   2. Run linter (`npm run lint`)
-  3. Build project (`npm run build`)
-  4. Run regression tests (`npm test`)
+  3. Build and run regression tests (`npm test`)
 
-**Regression tests:** After building, `npm test` runs all nine test files, including GPT Image model configuration, response handling and node execution. CI runs lint, build and tests.
+**Regression tests:** After building, `npm test` runs all test files, including GPT Image model configuration, response handling and node execution. CI runs lint and the full build/test suite.
 
 ---
 
@@ -284,6 +283,12 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 
 ## 💡 Key Implementation Details
 
+### GPT Image Download Recovery
+
+- Up to 4 GET attempts (3 retries), 20 seconds each and 80 seconds total including waits. Never retries the generation POST.
+- Error details preserve `imageUrl`, generation status/request ID and per-attempt diagnostics under `context.imageDownload`.
+- Whole-node retryOnFail can still regenerate; recover with an independent HTTP Request GET instead.
+
 ### Binary Data Handling
 
 - **Two modes:** Current node input OR specified upstream nodes
@@ -309,11 +314,13 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 
 ## 🔄 Version History
 
-### v1.4.0 (Current)
+### v1.4.1 (Current)
 
-- Uses the LmaoAPI address dropdown (AI domain by default, both addresses include `/v1`) and preserves saved credential URLs
-- Replaces embedded PNG icons with cropped vector LmaoAPI SVG logos
-- Publishes GitHub releases from `main` using CHANGELOG release notes; npm publishing remains manual
+- Adds URL-only download retries: 20 seconds per attempt, up to four attempts, 80 seconds including waits
+- Preserves recoverable URLs and per-attempt diagnostics in execution errors
+- Separates generation/download status and fixes locale-dependent CI sorting
+
+### v1.4.0
 
 - Adds GPT Image 2.5 Sunburst/Flare and their quality/background controls
 - Accepts Base64 or URL images and outputs original URLs alongside Binary data

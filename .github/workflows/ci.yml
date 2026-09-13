@@ -26,8 +26,5 @@ jobs:
       - name: Run lint
         run: 'npm run lint'
 
-      - name: Run build
-        run: 'npm run build'
-
-      - name: Run tests
-        run: 'npm test'
+      - name: Build and run regression tests
+        run: 'npm run build && npm test'

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-09-13
+
+### Added
+
+- GPT Image 结果 URL 下载支持首次请求加最多 3 次重试，单次最多 20 秒，含退避等待的总预算最多 80 秒；每次都使用同一 URL，不重复生图。
+- 对临时网络错误与 HTTP 408/429/500/502/503/504 进行有界重试，支持 Retry-After、独立截止计时和执行取消。
+- 在执行错误详情保留可恢复的图片 URL、生图请求 ID、失败阶段及各次下载状态/耗时/内容类型等诊断；Continue On Fail 同样输出恢复信息。
+
+### Fixed
+
+- 将生图 HTTP 状态与下载 HTTP 状态分开，区分响应解析、URL 校验、下载、格式识别和 Binary 写入错误。
+- 不再把底层异常、响应原文或凭据拼入错误消息；完整签名 URL 仅保留于执行详情。
+- 为隐藏视频操作按工作流程排列并设置局部排序例外，消除中文 Windows 与英文 Linux 的排序规则差异。
+
+### Changed
+
+- CI 增加完整回归测试（包含构建），发布前确认远端检查通过。
+- 增加整体节点自动重试风险提示及独立下载恢复说明，同步版本与相关文档到 1.4.1。
+- 保持下载失败报错、成功时 Binary/URL 输出以及 npm 手动发布流程。
+
+
 ## [1.4.0] - 2026-09-13
 
 ### Added
@@ -211,6 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 完整的类型定义
 - 自动 Base64 转换
 
+[1.4.1]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.4.1
 [1.4.0]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.4.0
 [1.3.8]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.8
 [1.3.7]: https://github.com/kkuxb/n8n-nodes-lmaoapi/releases/tag/v1.3.7
