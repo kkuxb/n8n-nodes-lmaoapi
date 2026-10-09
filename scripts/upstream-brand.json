@@ -21,6 +21,13 @@
 	},
 	"changelogPatches": [
 		{
+			"version": "1.4.2",
+			"section": "Fixed",
+			"entries": [
+				"发布预览直接读取 CHANGELOG，修复 Windows 下 release-it 使用 Git 修订表达式时的转义错误；npm 发布保持关闭。"
+			]
+		},
+		{
 			"version": "1.4.0",
 			"section": "Changed",
 			"entries": [

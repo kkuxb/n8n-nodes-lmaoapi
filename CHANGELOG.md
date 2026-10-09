@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 发布预览直接读取 CHANGELOG，修复 Windows 下 release-it 使用 Git 修订表达式时的转义错误；npm 发布保持关闭。
+
 - Nano Banana 图片根据实际文件头设置扩展名和 MIME，修复 JPEG 被固定标记为 PNG；跳过思考图片并兼容两种内联图片字段命名。
 
 ## [1.4.1] - 2026-09-13

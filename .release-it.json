@@ -6,6 +6,7 @@
 		]
 	},
 	"git": {
+		"changelog": "node scripts/release-notes.mjs",
 		"requireBranch": "main",
 		"requireCleanWorkingDir": true,
 		"requireUpstream": true,

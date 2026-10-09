@@ -152,7 +152,7 @@ test('brand documents retain upstream change content and replace only identity a
 		'set BASE_URL=https://api.lmao.net.cn/v1',
 	);
 	const changelog = transformChangelog(
-		'# Changelog\n\n## [1.4.0] - 2026-09-13\n\n## [1.3.5] - 2026-08-03\n\n### Added\n\n- 上游功能\n\n## [1.3.4] - 2026-07-31\n',
+		'# Changelog\n\n## [1.4.2] - 2026-10-09\n\n## [1.4.0] - 2026-09-13\n\n## [1.3.5] - 2026-08-03\n\n### Added\n\n- 上游功能\n\n## [1.3.4] - 2026-07-31\n',
 		config,
 	);
 	assert.match(changelog, /## \[1\.3\.5\][\s\S]*### Fixed[\s\S]*https:\/\/api\.lmao\.net\.cn[\s\S]*## \[1\.3\.4\]/);

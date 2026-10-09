@@ -541,6 +541,7 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 	if (fs.existsSync(releaseConfigPath)) {
 		const releaseConfig = readJson(releaseConfigPath);
 		releaseConfig.git.requireBranch = config.brand.branch;
+		releaseConfig.git.changelog = 'node scripts/release-notes.mjs';
 		releaseConfig.npm.publish = false;
 		releaseConfig.github.releaseNotes = 'node scripts/release-notes.mjs ${version}';
 		writeJson(releaseConfigPath, releaseConfig);

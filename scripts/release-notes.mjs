@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 
-const version = process.argv[2];
+const version = process.argv[2] ?? JSON.parse(
+	fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+).version;
 if (!version || !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version)) {
 	throw new Error('Provide the release version, for example: node scripts/release-notes.mjs 1.4.0');
 }

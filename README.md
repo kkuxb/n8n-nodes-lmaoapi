@@ -241,7 +241,7 @@ npm run release -- --no-increment --dry-run
 npm run release -- --no-increment
 ```
 
-GitHub 发布说明自动读取 CHANGELOG 对应版本。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。npm 发布由维护者在对应版本的代码上单独执行 `npm publish`，并手动完成身份验证。
+发布预览与 GitHub 发布说明均读取 CHANGELOG 对应版本，避免 Windows 对 Git 修订表达式的转义差异。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。npm 发布由维护者在对应版本的代码上单独执行 `npm publish`，并手动完成身份验证。
 
 ## 1.4.2 更新内容
 
