@@ -9,7 +9,7 @@ This is an n8n community node package that provides integration with LmaoAPI (ht
 **Key Features:**
 - Text generation with multimodal support (text + images)
 - Image generation (GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2.1)
-- Audio transcription (Whisper-1)
+- Audio transcription (qwen3.5-omni-flash; MP4/M4A AAC input, timestamped Markdown text output)
 - GPT Image Base64/URL responses converted to Binary, with original URLs in `json.imageUrl`
 - Cross-node Binary data reading
 
@@ -43,6 +43,7 @@ When the package version is already updated, use `npm run release -- --no-increm
 
 - `credentials/MaibaoApi.credentials.ts` - Credential definition (API Key + Base URL)
 - `nodes/MaibaoApi/MaibaoApi.node.ts` - Main node implementation
+- `nodes/MaibaoApi/audio/` - AAC extraction, M4A chunking, concurrent transcription and Markdown output; legacy Whisper backend retained
 - `dist/` - Compiled output (published to npm)
 
 ### Core Components
@@ -68,7 +69,7 @@ When the package version is already updated, use `npm run release -- --no-increm
 - Text: `POST /v1/chat/completions`
 - Image (Gemini): `POST /v1beta/models/{model}:generateContent`
 - Image (GPT Image): `POST /v1/images/generations`, multipart `POST /v1/images/edits`
-- Audio: `POST /v1/audio/transcriptions`
+- Audio: `POST /v1/chat/completions`; legacy Whisper backend uses `POST /v1/audio/transcriptions`
 - Video (hidden): `POST /v1/videos`, `GET /v1/videos/{id}`, etc.
 - Embeddings (hidden): `POST /v1/embeddings`
 
@@ -107,7 +108,7 @@ Use GptImageDownload for result URLs: 20 seconds per GET, at most four attempts,
 
 CI runs on GitHub Actions (.github/workflows/ci.yml):
 - Node.js 24
-- Runs `npm ci`, `npm run lint`, `npm test` (includes build)
+- Runs `npm ci`, `npm run lint`, `npm run build`, `npm test`
 - Triggers on pull requests and pushes to `main`
 
 Run `npm run build` followed by `npm test` locally to execute the regression suite, including image model configuration, Base64/URL responses and node execution.

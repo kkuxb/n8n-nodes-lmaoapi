@@ -6,7 +6,6 @@
 		]
 	},
 	"git": {
-		"changelog": "node scripts/release-notes.mjs",
 		"requireBranch": "main",
 		"requireCleanWorkingDir": true,
 		"requireUpstream": true,
@@ -15,7 +14,8 @@
 		"commitMessage": "chore: release version ${version}",
 		"tag": true,
 		"tagName": "v${version}",
-		"push": true
+		"push": true,
+		"changelog": "node scripts/release-notes.mjs"
 	},
 	"npm": {
 		"publish": false

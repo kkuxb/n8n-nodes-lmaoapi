@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-10-09
+
+### Changed
+
+- 音频转文本在内部切换到固定提示词转写，保持原模式名称，隐藏语言和输出格式控件。
+- 使用纯 JavaScript 提取普通 MP4/M4A 的 AAC 音轨、封装并切分 M4A；无需 FFmpeg 或新增运行时依赖。约 30 秒切片，支持三路并发、失败片段重试和执行取消。
+- **音频输出兼容性变化**：音频成功输出只保留 `text`，内容为带全片秒级起止时间的 Markdown。旧工作流需更新对 `time-text`、`sentences`、`_metadata` 的引用；原 `text` 也改为含时间戳的 Markdown。本版暂不支持 MP3、WAV、分片 MP4 等输入。
+- 完整保留旧 Whisper 请求、控件和输出，维护者可通过 `ACTIVE_AUDIO_BACKEND` 恢复。
+- 文字生成默认模型改为 `claude-sonnet-5-5`；删除 GPT 绘图模型下方的图片下载说明。
+
 ## [1.4.2] - 2026-10-09
 
 ### Changed

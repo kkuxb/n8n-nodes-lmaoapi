@@ -161,13 +161,13 @@ test('图像模式仅保留四个模型，新模型在前且默认模型不变',
 	);
 });
 
-test('文字生成默认使用 gpt-5.6-sol', () => {
+test('文字生成默认使用 claude-sonnet-5-5', () => {
 	const node = new MaibaoApi();
 	const modelIdProperty = node.description.properties.find(
 		(property) => property.name === 'modelId',
 	);
 
-	assert.equal(modelIdProperty.default, 'gpt-5.6-sol');
+	assert.equal(modelIdProperty.default, 'claude-sonnet-5-5');
 });
 
 test('节点为 GPT-Image-2 提供官方支持的分辨率选项并将自定义放在最上方', () => {

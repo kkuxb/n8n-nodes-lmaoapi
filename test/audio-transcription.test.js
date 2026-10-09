@@ -1,10 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const {
-	MaibaoApi,
-	convertWordsToSentences,
-} = require('../dist/nodes/MaibaoApi/MaibaoApi.node.js');
+const { MaibaoApi, convertWordsToSentences } = require('../dist/nodes/MaibaoApi/MaibaoApi.node.js');
 
 test('文字、图像和语音模式统一使用 data 到 data5 的 Binary 属性默认值', () => {
 	const node = new MaibaoApi();

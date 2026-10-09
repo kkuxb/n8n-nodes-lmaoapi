@@ -1,4 +1,9 @@
 /* eslint-disable n8n-nodes-base/node-filename-against-convention */
+import { ACTIVE_AUDIO_BACKEND } from './audio/AudioBackend';
+import { audioProperties } from './audio/AudioProperties';
+import { transcribeWhisper } from './audio/WhisperTranscription';
+import { transcribeOmni } from './audio/OmniTranscription';
+export { convertWordsToSentences } from './audio/WhisperTranscription';
 import {
 	IExecuteFunctions,
 	INodeExecutionData,
@@ -402,81 +407,6 @@ async function extractAudioFromBinary(
 	return null;
 }
 
-// Whisper API 响应中的词条目
-export interface WhisperWord {
-	word: string;
-	start: number;
-	end: number;
-}
-
-// Whisper API 响应
-export interface WhisperResponse {
-	text?: string;
-	words?: WhisperWord[];
-	[key: string]: unknown;
-}
-
-// 将词级别时间戳转换为句级别时间戳
-export function convertWordsToSentences(data: WhisperResponse): WhisperResponse {
-	if (!data.text || !data.words || data.words.length === 0) {
-		return data;
-	}
-
-	// 按空格分割句子
-	const sentences = data.text.split(' ').filter((s: string) => s.trim());
-	const words = data.words;
-	let wordIndex = 0;
-	const result = [];
-
-	for (const sentence of sentences) {
-		if (!sentence.trim()) continue;
-
-		// 移除句子中的空格，得到纯文本用于匹配
-		const sentenceText = sentence.replace(/\s+/g, '');
-		const sentenceWords = [];
-		let matchedText = '';
-
-		// 匹配句子中的所有词
-		while (wordIndex < words.length && matchedText.length < sentenceText.length) {
-			const word = words[wordIndex];
-			sentenceWords.push(word);
-			matchedText += word.word;
-			wordIndex++;
-
-			// 如果已经匹配完整个句子，停止
-			if (matchedText === sentenceText) {
-				break;
-			}
-		}
-
-		// 如果找到了对应的词，添加句子
-		if (sentenceWords.length > 0) {
-			result.push({
-				text: sentence,
-				start: parseFloat(sentenceWords[0].start.toFixed(1)),
-				end: parseFloat(sentenceWords[sentenceWords.length - 1].end.toFixed(1)),
-			});
-		}
-	}
-
-	const timeText = result
-		.map(sentence => `[${sentence.start.toFixed(1)}s - ${sentence.end.toFixed(1)}s] ${sentence.text}`)
-		.join('\n');
-
-	// 保证 time-text 紧邻且位于 sentences 之前，同时移除词级时间戳
-	const convertedData = { ...data };
-	delete convertedData.words;
-	delete convertedData['time-text'];
-	delete convertedData.sentences;
-
-	// 返回新的数据结构，兼顾可直接拖拽的文本和结构化句子
-	return {
-		...convertedData,
-		'time-text': timeText,
-		sentences: result,
-	};
-}
-
 export class MaibaoApi implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'LmaoAPI',
@@ -533,13 +463,6 @@ export class MaibaoApi implements INodeType {
 				default: 'gpt-image-2',
 			},
 			{
-				displayName: '结果图片下载每次最多 20 秒，最多重试 3 次，含等待总计不超过 80 秒。请关闭整个节点的失败自动重试，避免重复生图扣费；下载失败后可从错误详情复制 imageUrl 单独下载。',
-				name: 'imageDownloadNotice',
-				type: 'notice',
-				displayOptions: { show: { mode: ['image'], imageModel: GPT_IMAGE_MODELS } },
-				default: '',
-			},
-			{
 				displayName: '生成模型',
 				name: 'videoModel',
 				type: 'options',
@@ -555,7 +478,7 @@ export class MaibaoApi implements INodeType {
 				name: 'modelId',
 				type: 'string',
 				displayOptions: { show: { mode: ['text'] } },
-				default: 'gpt-5.6-sol',
+				default: 'claude-sonnet-5-5',
 				required: true,
 			},
 			{
@@ -884,31 +807,7 @@ export class MaibaoApi implements INodeType {
 				},
 				description: '从 Binary 中读取音频文件的属性名（逗号分隔，自动检测第一个匹配项）',
 			},
-			{
-				displayName: '音频语言',
-				name: 'audioLanguage',
-				type: 'options',
-				displayOptions: { show: { mode: ['audio'] } },
-				options: [
-					{ name: '自动识别', value: '' },
-					{ name: '中文', value: 'zh' },
-					{ name: '英语', value: 'en' },
-				],
-				default: '',
-				description: '指定音频语言可以提高准确性和速度。留空则自动识别。',
-			},
-			{
-				displayName: '输出格式',
-				name: 'audioResponseFormat',
-				type: 'options',
-				displayOptions: { show: { mode: ['audio'] } },
-				options: [
-					{ name: '带时间戳的 JSON 格式', value: 'verbose_json' },
-					{ name: '纯文本格式', value: 'text' },
-				],
-				default: 'verbose_json',
-				description: 'Verbose_json 包含分段文本和时间戳信息，text 仅返回纯文本',
-			},
+			...audioProperties(ACTIVE_AUDIO_BACKEND),
 		],
 		usableAsTool: true,
 	};
@@ -1322,77 +1221,10 @@ export class MaibaoApi implements INodeType {
 						throw new NodeOperationError(this.getNode(), '未找到音频文件');
 					}
 
-					// 构建 formData
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					const formData: Record<string, any> = {
-						file: {
-							value: audioData.buffer,
-							options: {
-								filename: audioData.fileName,
-								contentType: audioData.mimeType,
-							},
-						},
-						model: 'whisper-1',
-						response_format: responseFormat,
-					};
-
-					// 只有在用户选择了语言时才传递 language 参数
-					if (language) {
-						formData.language = language;
-					}
-
-					// 如果是 verbose_json 格式，添加 timestamp_granularities 参数
-					if (responseFormat === 'verbose_json') {
-						formData['timestamp_granularities[]'] = 'word';
-					}
-
-					// 调用 API（使用 request 因为 httpRequest 不支持 formData 且不允许导入 form-data）
-					// eslint-disable-next-line @n8n/community-nodes/no-deprecated-workflow-functions
-					const responseData = await this.helpers.request({
-						method: 'POST',
-						url: `${rawBaseUrl}/audio/transcriptions`,
-						headers: {
-							Authorization: `Bearer ${credentials.apiKey}`,
-						},
-						formData,
-						json: true,
-						timeout: REQUEST_TIMEOUT_MS,
-					});
-
-					// 构建输出
-					if (responseFormat === 'text') {
-						// 纯文本格式 - API 返回字符串
-						pushExecutionData(returnData, i, {
-							json: {
-								text: responseData,
-								_metadata: {
-									model: 'whisper-1',
-									format: 'text',
-									audioFormat: audioData.format,
-									sourceProperty: audioData.propName,
-									...(language && { language }),
-								},
-							},
-						});
-					} else {
-						// verbose_json 格式 - API 返回完整对象
-						// 将词级别时间戳转换为句级别时间戳
-						const convertedData = convertWordsToSentences(responseData);
-
-						pushExecutionData(returnData, i, {
-							json: {
-								...convertedData,
-								_metadata: {
-									model: 'whisper-1',
-									format: 'verbose_json',
-									audioFormat: audioData.format,
-									sourceProperty: audioData.propName,
-									timestampGranularity: 'sentence',
-									...(language && { language }),
-								},
-							},
-						});
-					}
+					const result = ACTIVE_AUDIO_BACKEND === 'whisper'
+						? await transcribeWhisper(this, audioData, rawBaseUrl, credentials.apiKey as string, language, responseFormat)
+						: { text: await transcribeOmni(this, audioData.buffer, rawBaseUrl, credentials.apiKey as string) };
+					pushExecutionData(returnData, i, { json: result });
 				}
 
 				else if (mode === 'embeddings') {

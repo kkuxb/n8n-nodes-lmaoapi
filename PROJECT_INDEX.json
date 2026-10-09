@@ -1,6 +1,6 @@
 {
   "projectName": "n8n-nodes-lmaoapi",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "type": "n8n-community-node",
   "generated": "2026-10-09",
   "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
@@ -10,9 +10,9 @@
     "email": "263674673@qq.com"
   },
   "statistics": {
-    "totalSourceLines": 2064,
-    "sourceFiles": 6,
-    "testFiles": 10
+    "totalSourceLines": 3028,
+    "sourceFiles": 14,
+    "testFiles": 14
   },
   "structure": {
     "entryPoints": {
@@ -41,7 +41,7 @@
       "exports": [
         "MaibaoApi"
       ],
-      "lines": 1440,
+      "lines": 1280,
       "functions": [
         "execute",
         "collectBinaryFromNodes",
@@ -91,6 +91,10 @@
     "GptImageDiagnostics": {
       "path": "nodes/MaibaoApi/GptImageDiagnostics.ts",
       "purpose": "Sanitized, serializable image failure diagnostics"
+    },
+    "Audio": {
+      "path": "nodes/MaibaoApi/audio/",
+      "purpose": "AAC extraction and M4A chunking, concurrent Omni transcription and Markdown output; legacy Whisper backend retained"
     }
   },
   "api": {
@@ -109,11 +113,12 @@
       "embeddings": "POST /v1/embeddings",
       "imageGptGenerate": "POST /v1/images/generations",
       "imageGptEdit": "POST /v1/images/edits",
-      "audio": "POST /v1/audio/transcriptions"
+      "audio": "POST /v1/chat/completions",
+      "audioWhisperLegacy": "POST /v1/audio/transcriptions"
     },
     "models": {
       "text": {
-        "default": "gpt-5.6-sol",
+        "default": "claude-sonnet-5-5",
         "customSupported": true
       },
       "image": [
@@ -209,7 +214,8 @@
       ],
       "imageDefault": "gpt-image-2",
       "audio": {
-        "default": "whisper-1"
+        "default": "qwen3.5-omni-flash",
+        "legacy": "whisper-1"
       }
     },
     "hiddenModes": [
@@ -257,7 +263,7 @@
     "lint": "n8n-node lint",
     "lint:fix": "n8n-node lint --fix",
     "test": "node --test test/*.test.js",
-    "test:audio": "npm run build && node --test test/audio-transcription.test.js",
+    "test:audio": "npm run build && node --test test/audio-*.test.js",
     "test:gpt-image-2": "npm run build && node --test test/gpt-image-2.test.js test/gpt-image-response.test.js test/gpt-image-download.test.js",
     "release": "release-it",
     "sync-upstream": "node scripts/sync-upstream.mjs"
@@ -311,7 +317,7 @@
       ]
     },
     "CHANGELOG.md": {
-      "latestVersion": "1.4.2",
+      "latestVersion": "1.4.3",
       "date": "2026-10-09"
     },
     "LICENSE.md": {
@@ -390,9 +396,14 @@
   },
   "versionHistory": [
     {
-      "version": "1.4.2",
+      "version": "1.4.3",
       "date": "2026-10-09",
       "status": "current",
+      "notes": "Chunked MP4/M4A AAC transcription; breaking audio output change to timestamped Markdown text only; text default claude-sonnet-5-5"
+    },
+    {
+      "version": "1.4.2",
+      "date": "2026-10-09",
       "notes": "GPT Image defaults to Base64; Nano Banana 2.1 with 21:9 and correct image MIME; old Nano Banana workflows must reselect the model"
     },
     {

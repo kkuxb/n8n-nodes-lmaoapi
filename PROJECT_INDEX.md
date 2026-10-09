@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
 **Generated:** 2026-10-09
-**Version:** 1.4.2
+**Version:** 1.4.3
 **Type:** n8n Community Node Package
 
 ---
@@ -17,6 +17,7 @@ n8n-nodes-lmaoapi/
 │       ├── MaibaoApi.node.ts       # Main node implementation
 │       ├── GptImageUtils.ts       # Model mapping and request validation
 │       ├── GptImageResponse.ts    # Base64/URL response handling
+│       ├── audio/                 # AAC extraction, chunking and transcription backends
 │       └── maibaoapi.svg           # Node icon
 ├── dist/                           # Compiled output (published to npm)
 │   ├── credentials/
@@ -35,7 +36,7 @@ n8n-nodes-lmaoapi/
 └── LICENSE.md                      # MIT License
 ```
 
-**Total Source Code:** 2064 lines across 6 TypeScript files
+**Total Source Code:** 3028 lines across 14 TypeScript files
 
 ---
 
@@ -78,7 +79,7 @@ n8n-nodes-lmaoapi/
 
 1. **Text Generation** - Chat completions with multimodal support (text + images)
 2. **Image Generation** - GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2.1
-3. **Audio Transcription** - Whisper-1
+3. **Audio Transcription** - qwen3.5-omni-flash (MP4/M4A AAC input, timestamped Markdown text output)
 
 Video and embeddings code remains in the repository but is hidden from the public node interface.
 
@@ -107,7 +108,7 @@ Video and embeddings code remains in the repository but is hidden from the publi
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.4.2
+- **Version:** 1.4.3
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`
@@ -150,8 +151,8 @@ Video and embeddings code remains in the repository but is hidden from the publi
 
 ### CHANGELOG.md
 
-- **Latest:** v1.4.2 (2026-10-09)
-- **Changes:** GPT Image defaults to Base64; Nano Banana 2.1 with 21:9 and correct image MIME
+- **Latest:** v1.4.3 (2026-10-09)
+- **Changes:** AAC extraction and chunked audio transcription with timestamped Markdown output; new text default model
 
 ### LICENSE.md
 
@@ -168,7 +169,7 @@ Video and embeddings code remains in the repository but is hidden from the publi
 - **Steps:**
   1. Install dependencies (`npm ci`)
   2. Run linter (`npm run lint`)
-  3. Build and run regression tests (`npm test`)
+  3. Build and run regression tests (`npm run build && npm test`)
 
 **Regression tests:** After building, `npm test` runs all test files, including GPT Image model configuration, response handling and node execution. CI runs lint and the full build/test suite.
 
@@ -240,7 +241,7 @@ Or install via n8n Community Nodes UI.
 - **Text:** `POST /v1/chat/completions`
 - **Image (Gemini):** `POST /v1beta/models/{model}:generateContent`
 - **Image (GPT Image):** `POST /v1/images/generations` or multipart `POST /v1/images/edits`
-- **Audio:** `POST /v1/audio/transcriptions`
+- **Audio:** `POST /v1/chat/completions` (legacy Whisper backend: `POST /v1/audio/transcriptions`)
 The following endpoints belong to hidden modes:
 
 - **Video Create:** `POST /v1/videos`
@@ -253,7 +254,7 @@ The following endpoints belong to hidden modes:
 
 **Text Generation:**
 
-- `gpt-5.6-sol` (default)
+- `claude-sonnet-5-5` (default)
 - Custom model IDs supported
 
 **Image Generation (dropdown order):**
@@ -267,7 +268,7 @@ Only the two 2.5 models expose 超高 (`xhigh`), 最高 (`max`) and background s
 
 Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them must select a supported model; otherwise execution fails before sending a generation request.
 
-**Audio Transcription:** `whisper-1`
+**Audio Transcription:** `qwen3.5-omni-flash`; legacy `whisper-1` backend retained behind `ACTIVE_AUDIO_BACKEND`. Success output contains only `text`; workflows using `time-text`, `sentences` or `_metadata` must migrate.
 
 **Video Generation (hidden):**
 
@@ -314,7 +315,13 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 
 ## 🔄 Version History
 
-### v1.4.2 (Current)
+### v1.4.3 (Current)
+
+- Extracts AAC from ordinary MP4/M4A and transcribes approximately 30-second M4A chunks with three workers, retries and cancellation
+- Returns only timestamped Markdown `text`; MP3, WAV and fragmented MP4 are unsupported
+- Defaults text generation to `claude-sonnet-5-5`
+
+### v1.4.2
 
 - Requests Base64 for GPT Image generation and edits, retaining URL fallback
 - Replaces Nano Banana 2 with Nano Banana 2.1 and adds 21:9

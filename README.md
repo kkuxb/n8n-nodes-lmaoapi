@@ -9,13 +9,13 @@
 
 ## 功能概览
 
-- **文字生成**：默认使用 `gpt-5.6-sol`，支持自定义模型 ID、系统提示词、文档文本拼接和最多 10 张图片输入。
+- **文字生成**：默认使用 `claude-sonnet-5-5`，支持自定义模型 ID、系统提示词、文档文本拼接和最多 10 张图片输入。
 - **图像生成**：支持 GPT-Image-2.5 Sunburst、GPT-Image-2.5 Flare、GPT-Image-2 和 Nano Banana 2.1，生成结果直接输出为 n8n Binary。
-- **音频转文本**：固定使用 `whisper-1`，支持纯文本与句级时间戳 JSON，并额外输出可直接拖拽使用的 `time-text` 字段。
+- **音频转文本**：自动提取 MP4/M4A 的 AAC 音轨并分段转写，只输出带全片时间戳的 Markdown `text` 字段。
 - **多种 Binary 来源**：可从当前节点输入、指定节点读取图片或音频；文字与图像模式还支持从 URL 获取图片。
-- **长任务超时**：模型 API 请求使用 600 秒超时；GPT Image 结果 URL 下载单次最多 20 秒、含重试等待总计最多 80 秒。
+- **长任务超时**：文字与绘图 API 请求使用 600 秒超时；音频每次请求最多 180 秒、每个文件预算 600 秒；GPT Image 结果 URL 下载单次最多 20 秒、含重试等待总计最多 80 秒。
 
-> 当前节点界面只开放上述三种模式。仓库中保留的视频与向量相关实现不属于 1.4.2 的公开节点功能。
+> 当前节点界面只开放上述三种模式。仓库中保留的视频与向量相关实现不属于当前公开节点功能。
 
 ## 安装
 
@@ -65,7 +65,7 @@ data,data0,data1,data2,data3,data4,data5
 
 文字生成通过 `/chat/completions` 调用兼容接口。
 
-- 默认模型 ID：`gpt-5.6-sol`
+- 默认模型 ID：`claude-sonnet-5-5`
 - 默认系统提示词：`你是一个专业的助手。`
 - 模型 ID 可自由修改。
 - 如果输入 Item 的 JSON 中包含非空 `text` 字段，节点会将其作为“参考文档内容”拼接到用户提示词后。
@@ -139,63 +139,40 @@ GPT-Image-2 的质量可选自动、低、中、高；输出格式可选 PNG、J
 
 ## 音频转文本
 
-音频模式使用 `whisper-1` 调用 `/audio/transcriptions`。
+选择「音频转文本」，输入含音频的 Binary 文件即可。语言自动识别，保留原语言，不自动翻译。无需安装 FFmpeg、额外程序或运行时依赖。
 
 ### 支持格式
 
-`flac`、`mp3`、`mp4`、`mpeg`、`mpga`、`m4a`、`ogg`、`wav`、`webm`
+当前支持普通、未加密 MP4/M4A 中的单条 AAC-LC / HE-AAC 音轨，支持常见的编码延迟、头尾裁剪和音轨起点信息。
 
-输入既可以是音频，也可以是上述支持容器中的视频。语言可以自动识别，也可以手动指定中文或英语。
+暂不支持分片式 MP4、复杂多段编辑、多音轨选择，以及 MP3、WAV、FLAC、OGG、WebM 等其他容器/编码；不支持的文件会在提交前报错。单文件最大 128 MiB，最多 500,000 个 AAC 包。文件整体需读入内存，大文件或大量工作流并行时应预留内存。
 
 ### 输出格式
 
-- **带时间戳的 JSON 格式**：向接口请求词级时间戳，再由节点聚合为句级时间戳。
-- **纯文本格式**：在顶层 `text` 字段返回转写内容，同时附带 `_metadata`。
+成功 JSON 只包含 `text`，其值为 Markdown 字符串，每个句段一条列表：
 
-带时间戳输出示例：
-
-```json
-{
-  "task": "transcribe",
-  "language": "chinese",
-  "duration": 7.2,
-  "text": "家里过年人多 炖肉时间长 你们也学我",
-  "time-text": "[0.0s - 1.3s] 家里过年人多\n[1.5s - 2.6s] 炖肉时间长\n[2.6s - 4.0s] 你们也学我",
-  "sentences": [
-    {
-      "text": "家里过年人多",
-      "start": 0,
-      "end": 1.3
-    },
-    {
-      "text": "炖肉时间长",
-      "start": 1.5,
-      "end": 2.6
-    },
-    {
-      "text": "你们也学我",
-      "start": 2.6,
-      "end": 4
-    }
-  ],
-  "_metadata": {
-    "model": "whisper-1",
-    "format": "verbose_json",
-    "audioFormat": "mp4",
-    "sourceProperty": "data",
-    "timestampGranularity": "sentence",
-    "language": "zh"
-  }
-}
+```markdown
+- **[00:00–00:06]** 你是否正在寻找一款价格实惠的摩托车对讲机？
+- **[00:06–00:11]** 接下来，我们会介绍几款值得关注的产品。
 ```
 
-`time-text` 位于 `sentences` 之前，每句话占一行，适合直接拖到后续 AI 节点中使用。手动填写表达式时，因为字段名包含连字符，应使用：
+时间是全片起止时间，显示到秒；内部使用精确时间拼接。一小时以上显示小时。时间戳为估算值，切片边界、噪声和多人说话可能影响识别与对齐，不适用于逐词精准对齐。重叠部分仅对严格匹配的句段或多词短语去重；不同措辞、单词残片可能保留少量重复。纯静音返回空字符串。
+
+下游读取：
 
 ```javascript
-{{ $json["time-text"] }}
+{{ $json.text }}
 ```
 
-`sentences` 数组仍然保留，方便需要结构化 `text`、`start`、`end` 的工作流继续使用。
+约 30 秒切片，片段之间保留少量上下文；单个节点执行最多 3 路并发，单次请求最多 180 秒，每个文件转写预算 600 秒。可重试故障仅重试失败片段，最多额外 2 次。任一片段最终失败，节点报错并指出失败区间，不将残缺结果作为完整文本输出。整个节点被重跑仍可能重复计费。
+
+### 从 1.4.2 及更早版本升级
+
+1.4.3 的音频成功输出改为单字段 `text`，**与旧音频输出结构不兼容**。原工作流引用 `time-text`、`sentences`、`_metadata` 等字段的表达式需更新；原 `text` 也改为包含时间戳的 Markdown。语言和格式控件隐藏，已保存的旧参数值保留。已有工作流显式保存的文字模型 ID 不会被新默认值覆盖。
+
+### 维护者恢复旧后端
+
+旧 Whisper 请求、格式、参数及输出实现完整保存在 `nodes/MaibaoApi/audio/WhisperTranscription.ts`。将 `AudioBackend.ts` 的 `ACTIVE_AUDIO_BACKEND` 从 `'omni'` 改为 `'whisper'`，构建后会恢复旧执行路径、语言/格式下拉框和完整旧输出。没有自动回退请求。恢复发布前运行两套回归测试，并在服务重新可用后做真实接口验证。
 
 ## 本地开发
 
@@ -217,7 +194,7 @@ npm run dev
 | `npm run build`            | 构建 TypeScript 节点并复制静态资源到 `dist/` |
 | `npm run build:watch`      | 持续监听 TypeScript 变更               |
 | `npm test`                 | 运行全部回归测试（需先构建）           |
-| `npm run test:audio`       | 运行音频输出与 Binary 默认值测试             |
+| `npm run test:audio`       | 构建并验证 AAC 提取、分段转写、Markdown 输出及旧 Whisper 后端 |
 | `npm run test:gpt-image-2` | 运行 GPT Image 模型与图片响应回归测试              |
 | `npm run lint`             | 执行 n8n 社区节点规则检查                  |
 | `npm run dev`              | 启动节点热更新和本地 n8n 开发服务器             |
@@ -243,12 +220,12 @@ npm run release -- --no-increment
 
 发布预览与 GitHub 发布说明均读取 CHANGELOG 对应版本，避免 Windows 对 Git 修订表达式的转义差异。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。npm 发布由维护者在对应版本的代码上单独执行 `npm publish`，并手动完成身份验证。
 
-## 1.4.2 更新内容
+## 1.4.3 更新内容
 
-- 三个 GPT Image 模型的文生图与参考图编辑默认请求 Base64，直接输出 Binary；保留 URL 响应兼容、链接输出和下载重试。
-- 将 Nano Banana 2 替换为 **Nano Banana 2.1**，使用模型 ID `gemini-nano-banana-2.1-preview`，新增 `21:9` 比例，保留 1K / 2K / 4K。
-- 修复 Nano Banana 返回 JPEG 时被标记为 PNG 的问题，按实际图片格式输出扩展名和 MIME，并跳过思考图片。
-- **升级提示**：使用旧 Nano Banana 2 的工作流需要重新选择 Nano Banana 2.1；仅返回 Base64 时没有图片 URL。
+- 音频转文本采用纯 JavaScript 提取 AAC、封装及切分 M4A，无需安装 FFmpeg；约 30 秒分段、三路并发，支持失败片段重试与取消。
+- 模式名称保持不变，隐藏音频语言和输出格式，仅输出带秒级全片时间戳的 Markdown `text`；完整保留旧 Whisper 实现，便于维护者恢复。
+- 文字生成默认模型改为 `claude-sonnet-5-5`；删除 GPT 绘图模型下方的图片下载说明。
+- **升级提示**：本版音频输出结构与旧版不兼容，下游改为读取 `$json.text`。当前支持普通 MP4/M4A 的 AAC 音轨，不支持 MP3、WAV、分片 MP4 等输入；时间戳为模型估算值。
 
 完整版本记录见 [CHANGELOG.md](CHANGELOG.md)。
 
