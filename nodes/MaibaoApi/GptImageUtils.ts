@@ -120,6 +120,8 @@ export function buildGptImageRequest(
 		quality: options.quality,
 		background: options.background,
 		output_format: options.outputFormat,
+		// Maibao supports this parameter even though OpenAI excludes GPT Image.
+		response_format: 'b64_json',
 		n: 1,
 	};
 

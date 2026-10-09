@@ -2,8 +2,8 @@
   "upstream": {
     "url": "https://github.com/kkuxb/n8n-nodes-maibaoapi.git",
     "branch": "master",
-    "commit": "5372480f8f1e6ca94c82e630e5410305711e3d4c",
-    "version": "1.4.1"
+    "commit": "d089247db71721ae60c63053e7aa013d3d1e4c68",
+    "version": "1.4.2"
   },
   "managedPaths": [
     ".claude/settings.local.json",

@@ -101,7 +101,10 @@ export function transformBrandDocument(content, config) {
 }
 
 export function transformChangelog(content, config) {
-	let output = transformBrandDocument(content, config);
+	let output = transformBrandDocument(content, config).replace(
+		'修正 README 对麦包返回格式控制能力的说明，区分 OpenAI 官方接口约定与麦包实测结果。',
+		`更新 README 的返回格式说明，区分 OpenAI 官方约定与上游麦包实测；${config.brand.displayName} 跟随上游设置，线上响应行为尚未验证。`,
+	);
 	for (const patch of config.changelogPatches ?? []) {
 		const missingEntries = patch.entries.filter((entry) => !output.includes(entry));
 		if (missingEntries.length === 0) continue;
@@ -257,6 +260,9 @@ export function transformReadme(content, config) {
 		.replaceAll('`.npm-n8n-cache/`', '`.npm-n8n-cache-node24/`')
 		.replaceAll('优先切到 Node.js 22', '优先确认当前 shell 使用 Node.js 24')
 		.replaceAll('先构建，再运行全部 Node.js 回归测试', '运行全部回归测试（需先构建）')
+		.replaceAll('但 2026-10-09 的麦包', '但上游在 2026-10-09 对麦包服务的')
+		.replaceAll('本节点据此向麦包固定请求 Base64', `本节点跟随上游向 ${config.brand.displayName} 固定请求 Base64`)
+		.replaceAll('两个 GPT-Image-2.5 模型及参考图编辑接口尚未完成该参数的在线验证。', `两个 GPT-Image-2.5 模型及参考图编辑接口尚未完成该参数的在线验证；${config.brand.displayName} 的线上响应行为也尚未验证。`)
 		.replace(/npm run release -- \d+\.\d+\.\d+ --npm\.allowSameVersion/g, 'npm run release -- --no-increment')
 		.replace(/如果已手动更新版本号[^\n]+：/, '版本号已更新时，使用 `--no-increment` 保持 package.json 中的版本不变：')
 		.replace('GitHub 发布需要配置相应认证。', 'GitHub 发布说明自动读取 CHANGELOG 对应版本。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。');
@@ -492,13 +498,19 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		if (projectIndex.statistics) {
 			projectIndex.statistics.testFiles = fs.readdirSync(path.join(candidateRoot, 'test')).filter((file) => file.endsWith('.test.js')).length;
 		}
-		if (projectIndex.release?.branch) projectIndex.release.branch = config.brand.branch;
+		if (projectIndex.release) {
+			projectIndex.release.branch = config.brand.branch;
+			projectIndex.release.releaseNotes = 'CHANGELOG.md';
+		}
 		if (projectIndex.ci) {
 			projectIndex.ci.nodeVersion = config.brand.nodeEngine.replace('.x', '');
 			projectIndex.ci.triggers = projectIndex.ci.triggers.map((trigger) =>
 				trigger === 'push:master' ? `push:${config.brand.branch}` : trigger,
 			);
 			if (!projectIndex.ci.steps.includes('npm test')) projectIndex.ci.steps.push('npm test');
+			if (!projectIndex.ci.steps.includes('npm run build')) {
+				projectIndex.ci.steps.splice(projectIndex.ci.steps.indexOf('npm test'), 0, 'npm run build');
+			}
 		}
 		if (Array.isArray(projectIndex.credentials?.type?.properties)) {
 			projectIndex.credentials.type.properties = projectIndex.credentials.type.properties.map((property) =>

@@ -47,13 +47,14 @@ async function execute({ model = 'gpt-image-2', body, download = png, references
 
 for (const model of GPT_IMAGE_MODELS) {
 	for (const references of [false, true]) {
-		test(`${model} ${references ? '编辑' : '生图'}：URL 自动下载并同时输出图片与链接`, async () => {
+		test(`${model} ${references ? '编辑' : '生图'}：请求 Base64，仍兼容 URL 响应并输出图片与链接`, async () => {
 			const result = await execute({ model, references, body: { data: [{ url: imageUrl }] } });
 			assert.equal(result.error, undefined);
 			assert.equal(result.calls.length, 2);
 			const [post, get] = result.calls;
 			assert.equal(post.url, `https://api.example.test/v1/images/${references ? 'edits' : 'generations'}`);
 			assert.equal(references ? post.body.get('model') : post.body.model, `${model}-c`);
+			assert.equal(references ? post.body.get('response_format') : post.body.response_format, 'b64_json');
 			assert.equal(get.url, imageUrl);
 			assert.equal(get.encoding, 'arraybuffer');
 			assert.equal(get.headers, undefined);
@@ -165,7 +166,7 @@ test('continueOnFail 保持错误输出与 item 关联', async () => {
 });
 
 test('旧工作流中的已移除模型会提示重新选择，不发送生图请求', async () => {
-	for (const model of ['gemini-3-pro-image-preview', 'doubao-seedream-5-0-260128']) {
+	for (const model of ['gemini-3-pro-image-preview', 'doubao-seedream-5-0-260128', 'gemini-3.1-flash-image-preview']) {
 		const result = await execute({ model, body: {} });
 		assert.match(result.error.message, /已移除或不受支持.*重新选择/);
 		assert.equal(result.calls.length, 0);

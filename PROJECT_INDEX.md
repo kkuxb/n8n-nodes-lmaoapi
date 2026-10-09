@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
-**Generated:** 2026-09-13
-**Version:** 1.4.1
+**Generated:** 2026-10-09
+**Version:** 1.4.2
 **Type:** n8n Community Node Package
 
 ---
@@ -35,7 +35,7 @@ n8n-nodes-lmaoapi/
 └── LICENSE.md                      # MIT License
 ```
 
-**Total Source Code:** 2056 lines across 6 TypeScript files
+**Total Source Code:** 2064 lines across 6 TypeScript files
 
 ---
 
@@ -77,7 +77,7 @@ n8n-nodes-lmaoapi/
 **Supported Modes:**
 
 1. **Text Generation** - Chat completions with multimodal support (text + images)
-2. **Image Generation** - GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2
+2. **Image Generation** - GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2.1
 3. **Audio Transcription** - Whisper-1
 
 Video and embeddings code remains in the repository but is hidden from the public node interface.
@@ -107,7 +107,7 @@ Video and embeddings code remains in the repository but is hidden from the publi
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.4.1
+- **Version:** 1.4.2
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`
@@ -150,8 +150,8 @@ Video and embeddings code remains in the repository but is hidden from the publi
 
 ### CHANGELOG.md
 
-- **Latest:** v1.4.1 (2026-09-13)
-- **Changes:** Bounded image download retries, failure recovery and diagnostics, cross-locale CI fix
+- **Latest:** v1.4.2 (2026-10-09)
+- **Changes:** GPT Image defaults to Base64; Nano Banana 2.1 with 21:9 and correct image MIME
 
 ### LICENSE.md
 
@@ -261,9 +261,9 @@ The following endpoints belong to hidden modes:
 1. `gpt-image-2.5-sunburst` → `gpt-image-2.5-sunburst-c`
 2. `gpt-image-2.5-flare` → `gpt-image-2.5-flare-c`
 3. `gpt-image-2` → `gpt-image-2-c` (default)
-4. `gemini-3.1-flash-image-preview` (Nano Banana 2) - 13 aspect ratios, 1K/2K/4K
+4. `gemini-nano-banana-2.1-preview` (Nano Banana 2.1) - 14 aspect ratios, 1K/2K/4K
 
-Only the two 2.5 models expose 超高 (`xhigh`), 最高 (`max`) and background settings. Transparent backgrounds require PNG or WebP. Compression and response-format selectors are not exposed. URL responses are downloaded automatically; Base64 takes priority if both fields are present, with the URL preserved.
+Only the two 2.5 models expose 超高 (`xhigh`), 最高 (`max`) and background settings. Transparent backgrounds require PNG or WebP. Compression and response-format selectors are not exposed. GPT Image requests always send `response_format: 'b64_json'`. URL responses are downloaded automatically; Base64 takes priority if both fields are present, with the URL preserved.
 
 Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them must select a supported model; otherwise execution fails before sending a generation request.
 
@@ -314,7 +314,13 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 
 ## 🔄 Version History
 
-### v1.4.1 (Current)
+### v1.4.2 (Current)
+
+- Requests Base64 for GPT Image generation and edits, retaining URL fallback
+- Replaces Nano Banana 2 with Nano Banana 2.1 and adds 21:9
+- Detects actual Nano Banana image formats and skips thought images; old workflows must reselect the model
+
+### v1.4.1
 
 - Adds URL-only download retries: 20 seconds per attempt, up to four attempts, 80 seconds including waits
 - Preserves recoverable URLs and per-attempt diagnostics in execution errors
@@ -350,5 +356,5 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 ---
 
 **Index Status:** ✅ Complete
-**Last Updated:** 2026-09-13
+**Last Updated:** 2026-10-09
 **Maintainer:** 毛淞淮 (maosonghuai)

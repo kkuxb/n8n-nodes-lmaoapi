@@ -14,7 +14,7 @@ const { MaibaoApi } = require('../dist/nodes/MaibaoApi/MaibaoApi.node.js');
 
 test('识别 gpt-image-2 模型', () => {
 	assert.equal(isGptImageModel('gpt-image-2'), true);
-	assert.equal(isGptImageModel('gemini-3.1-flash-image-preview'), false);
+	assert.equal(isGptImageModel('gemini-nano-banana-2.1-preview'), false);
 });
 
 test('无参考图时走文生图接口', () => {
@@ -36,6 +36,7 @@ test('无参考图时走文生图接口', () => {
 		quality: 'medium',
 		background: 'auto',
 		output_format: 'png',
+		response_format: 'b64_json',
 		n: 1,
 	});
 	assert.equal(request.outputFileName, 'gpt_image_2.png');
@@ -92,6 +93,7 @@ test('图像编辑 multipart 使用 OpenAI 兼容的 image[] 文件字段', () =
 	const formData = buildGptImageMultipartFormData(request.body);
 
 	assert.equal(formData.model, 'gpt-image-2-c');
+	assert.equal(formData.response_format, 'b64_json');
 	assert.equal(formData.prompt, '把这张图改成霓虹赛博朋克风格');
 	assert.equal(formData.images, undefined);
 	assert.equal(formData.image, undefined);
@@ -154,7 +156,7 @@ test('图像模式仅保留四个模型，新模型在前且默认模型不变',
 			{ name: 'GPT-Image-2.5 Sunburst', value: 'gpt-image-2.5-sunburst' },
 			{ name: 'GPT-Image-2.5 Flare', value: 'gpt-image-2.5-flare' },
 			{ name: 'GPT-Image-2', value: 'gpt-image-2' },
-			{ name: 'Nano Banana 2', value: 'gemini-3.1-flash-image-preview' },
+			{ name: 'Nano Banana 2.1', value: 'gemini-nano-banana-2.1-preview' },
 		],
 	);
 });
@@ -267,7 +269,7 @@ test('背景仅向两个新模型开放，包含透明选项', () => {
 	);
 });
 
-test('两个新模型映射 -c，复用生图和 multipart 编辑，未添加非官方返回参数', () => {
+test('两个新模型映射 -c，生图和 multipart 编辑均请求 Base64', () => {
 	for (const model of GPT_IMAGE_25_MODELS) {
 		assert.equal(isGptImageModel(model), true);
 		assert.equal(isGptImage25Model(model), true);
@@ -280,13 +282,14 @@ test('两个新模型映射 -c，复用生图和 multipart 编辑，未添加非
 				assert.equal(request.body.model, `${model}-c`);
 				assert.equal(request.body.quality, quality);
 				assert.equal(request.body.background, 'transparent');
-				assert.equal(request.body.response_format, undefined);
+				assert.equal(request.body.response_format, 'b64_json');
 				assert.equal(request.body.output_compression, undefined);
 				assert.equal(request.endpoint, images.length ? '/images/edits' : '/images/generations');
 				assert.equal(request.usesMultipart, !!images.length);
 				if (images.length) {
 					const form = buildGptImageMultipartFormData(request.body);
 					assert.equal(form.model, `${model}-c`);
+					assert.equal(form.response_format, 'b64_json');
 					assert.equal(form.quality, quality);
 					assert.equal(form.background, 'transparent');
 					assert.equal(form['image[]'].length, 1);

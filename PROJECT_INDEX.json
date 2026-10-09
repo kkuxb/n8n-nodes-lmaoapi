@@ -1,8 +1,8 @@
 {
   "projectName": "n8n-nodes-lmaoapi",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "type": "n8n-community-node",
-  "generated": "2026-09-13",
+  "generated": "2026-10-09",
   "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
   "license": "MIT",
   "author": {
@@ -10,7 +10,7 @@
     "email": "263674673@qq.com"
   },
   "statistics": {
-    "totalSourceLines": 2056,
+    "totalSourceLines": 2064,
     "sourceFiles": 6,
     "testFiles": 10
   },
@@ -41,7 +41,7 @@
       "exports": [
         "MaibaoApi"
       ],
-      "lines": 1434,
+      "lines": 1440,
       "functions": [
         "execute",
         "collectBinaryFromNodes",
@@ -138,7 +138,8 @@
             "png",
             "jpeg",
             "webp"
-          ]
+          ],
+          "responseFormat": "b64_json"
         },
         {
           "id": "gpt-image-2.5-flare",
@@ -161,7 +162,8 @@
             "png",
             "jpeg",
             "webp"
-          ]
+          ],
+          "responseFormat": "b64_json"
         },
         {
           "id": "gpt-image-2",
@@ -177,12 +179,13 @@
             "png",
             "jpeg",
             "webp"
-          ]
+          ],
+          "responseFormat": "b64_json"
         },
         {
-          "id": "gemini-3.1-flash-image-preview",
-          "name": "Nano Banana 2",
-          "aspectRatios": 13,
+          "id": "gemini-nano-banana-2.1-preview",
+          "name": "Nano Banana 2.1",
+          "aspectRatios": 14,
           "resolutions": [
             "1K",
             "2K",
@@ -276,6 +279,7 @@
     "steps": [
       "npm ci",
       "npm run lint",
+      "npm run build",
       "npm test"
     ],
     "triggers": [
@@ -307,8 +311,8 @@
       ]
     },
     "CHANGELOG.md": {
-      "latestVersion": "1.4.1",
-      "date": "2026-09-13"
+      "latestVersion": "1.4.2",
+      "date": "2026-10-09"
     },
     "LICENSE.md": {
       "type": "MIT"
@@ -369,7 +373,8 @@
       ],
       "removedModels": [
         "gemini-3-pro-image-preview",
-        "doubao-seedream-5-0-260128"
+        "doubao-seedream-5-0-260128",
+        "gemini-3.1-flash-image-preview"
       ],
       "removedModelBehavior": "Fail before HTTP request; reselect a supported model",
       "download": {
@@ -379,14 +384,20 @@
         "maxRetries": 3,
         "diagnosticsPath": "error.context.imageDownload",
         "retryWholeNode": false
-      }
+      },
+      "gptImageRequestFormat": "b64_json"
     }
   },
   "versionHistory": [
     {
+      "version": "1.4.2",
+      "date": "2026-10-09",
+      "status": "current",
+      "notes": "GPT Image defaults to Base64; Nano Banana 2.1 with 21:9 and correct image MIME; old Nano Banana workflows must reselect the model"
+    },
+    {
       "version": "1.4.1",
       "date": "2026-09-13",
-      "status": "current",
       "notes": "Bounded download retries, recoverable failure URLs and diagnostics; cross-locale CI fix"
     },
     {
@@ -428,6 +439,6 @@
     "gpt-image-2.5-sunburst",
     "gpt-image-2.5-flare",
     "音频转文本",
-    "nano banana2"
+    "nano banana2.1"
   ]
 }

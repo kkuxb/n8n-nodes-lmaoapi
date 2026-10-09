@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-10-09
+
+### Changed
+
+- 将 Nano Banana 2 替换为 Nano Banana 2.1，请求 ID 使用 `gemini-nano-banana-2.1-preview`，补充 `21:9` 比例；旧工作流需重新选择模型。
+- 三个 GPT Image 模型的文生图及参考图编辑请求固定发送 `response_format: "b64_json"`，不增加前端返回格式选项；服务商返回 Base64 时直接输出 Binary，避免额外下载结果图片。
+- 保留 URL 响应兼容、链接输出与下载重试，兼容服务商未遵循返回格式参数的情况；仅返回 Base64 时不提供图片 URL。
+- 更新 README 的返回格式说明，区分 OpenAI 官方约定与上游麦包实测；LmaoAPI 跟随上游设置，线上响应行为尚未验证。
+
+### Fixed
+
+- Nano Banana 图片根据实际文件头设置扩展名和 MIME，修复 JPEG 被固定标记为 PNG；跳过思考图片并兼容两种内联图片字段命名。
+
 ## [1.4.1] - 2026-09-13
 
 ### Added

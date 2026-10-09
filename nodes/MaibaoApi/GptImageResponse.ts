@@ -15,7 +15,7 @@ export interface GptImageResult {
 	diagnostics: ImageDiagnostics;
 }
 
-function detectImageFormat(buffer: Buffer): { mimeType: string; extension: string } {
+export function detectImageFormat(buffer: Buffer): { mimeType: string; extension: string } {
 	if (buffer.length >= 24 && buffer.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))) {
 		return { mimeType: 'image/png', extension: 'png' };
 	}

@@ -21,7 +21,7 @@ import {
 	GptImageQuality,
 	resolveGptImageSize,
 } from './GptImageUtils';
-import { resolveGptImageResponse } from './GptImageResponse';
+import { detectImageFormat, resolveGptImageResponse } from './GptImageResponse';
 import { downloadGptImage } from './GptImageDownload';
 import { asObject, GptImageError, ImageDiagnostics, responseRequestId, responseStatus, safeToken } from './GptImageDiagnostics';
 
@@ -528,7 +528,7 @@ export class MaibaoApi implements INodeType {
 					{ name: 'GPT-Image-2.5 Sunburst', value: 'gpt-image-2.5-sunburst' },
 					{ name: 'GPT-Image-2.5 Flare', value: 'gpt-image-2.5-flare' },
 					{ name: 'GPT-Image-2', value: 'gpt-image-2' },
-					{ name: 'Nano Banana 2', value: 'gemini-3.1-flash-image-preview' },
+					{ name: 'Nano Banana 2.1', value: 'gemini-nano-banana-2.1-preview' },
 				],
 				default: 'gpt-image-2',
 			},
@@ -662,7 +662,7 @@ export class MaibaoApi implements INodeType {
 				displayName: '分辨率',
 				name: 'imageSize',
 				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['gemini-3.1-flash-image-preview'] } },
+				displayOptions: { show: { mode: ['image'], imageModel: ['gemini-nano-banana-2.1-preview'] } },
 				options: [{ name: '1K', value: '1K' }, { name: '2K', value: '2K' }, { name: '4K', value: '4K' }],
 				default: '1K',
 			},
@@ -754,11 +754,12 @@ export class MaibaoApi implements INodeType {
 				displayName: '尺寸比例',
 				name: 'aspectRatio',
 				type: 'options',
-				displayOptions: { show: { mode: ['image'], imageModel: ['gemini-3.1-flash-image-preview'] } },
+				displayOptions: { show: { mode: ['image'], imageModel: ['gemini-nano-banana-2.1-preview'] } },
 				options: [
 					{ name: '1:1', value: '1:1' }, { name: '1:4', value: '1:4' },
 					{ name: '1:8', value: '1:8' }, { name: '16:9', value: '16:9' },
-					{ name: '2:3', value: '2:3' }, { name: '3:2', value: '3:2' },
+					{ name: '2:3', value: '2:3' }, { name: '21:9', value: '21:9' },
+					{ name: '3:2', value: '3:2' },
 					{ name: '3:4', value: '3:4' }, { name: '4:1', value: '4:1' },
 					{ name: '4:3', value: '4:3' }, { name: '4:5', value: '4:5' },
 					{ name: '5:4', value: '5:4' }, { name: '8:1', value: '8:1' },
@@ -996,7 +997,7 @@ export class MaibaoApi implements INodeType {
 					const sourceNodeNamesInput = this.getNodeParameter('sourceNodeNames', i, '') as string;
 					const specifiedNodes = sourceNodeNamesInput.split(',').map(s => s.trim()).filter(s => s !== '');
 
-					if (imageModel === 'gemini-3.1-flash-image-preview') {
+					if (imageModel === 'gemini-nano-banana-2.1-preview') {
 						const parts: Array<Record<string, unknown>> = [{ text: userPrompt }];
 
 						// 提取图片（最多10张）
@@ -1039,9 +1040,14 @@ export class MaibaoApi implements INodeType {
 							json: true,
 							timeout: REQUEST_TIMEOUT_MS,
 						});
-						const b64 = res.candidates?.[0]?.content?.parts?.find((p: Record<string, unknown>) => p.inlineData)?.inlineData.data;
-						if (b64) {
-							const binaryOutput = await this.helpers.prepareBinaryData(Buffer.from(b64, 'base64'), 'gemini_flash_image.png', 'image/png');
+						const imagePart = res.candidates?.[0]?.content?.parts?.find(
+							(p: Record<string, unknown>) => !p.thought && (p.inlineData || p.inline_data),
+						);
+						const b64 = (imagePart?.inlineData ?? imagePart?.inline_data)?.data;
+						if (typeof b64 === 'string' && b64.trim()) {
+							const buffer = Buffer.from(b64, 'base64');
+							const format = detectImageFormat(buffer);
+							const binaryOutput = await this.helpers.prepareBinaryData(buffer, `nano_banana_2_1.${format.extension}`, format.mimeType);
 							pushExecutionData(returnData, i, {
 								json: { status: 'success' },
 								binary: { data: binaryOutput },

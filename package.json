@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-lmaoapi",
-	"version": "1.4.1",
+	"version": "1.4.2",
 	"description": "便捷调用 LmaoAPI 进行文字生成、图像生成、音频转文本。",
 	"license": "MIT",
 	"homepage": "https://github.com/kkuxb/n8n-nodes-lmaoapi#readme",
@@ -15,7 +15,7 @@
 		"gpt-image-2.5-sunburst",
 		"gpt-image-2.5-flare",
 		"音频转文本",
-		"nano banana2"
+		"nano banana2.1"
 	],
 	"author": {
 		"name": "毛淞淮",
