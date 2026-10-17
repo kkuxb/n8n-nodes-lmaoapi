@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-10-17
+
+### Changed
+
+- 凭证页面仅需填写 API Key，移除 API 地址选项。凭证测试及全部节点 API 请求统一使用 `https://ai.lmao.net.cn`，忽略旧凭证中保存的地址。
+- 停止使用服务商已不再支持的 `https://api.lmao.net.cn`，已有凭证无需重新创建。
+
 ## [1.4.3] - 2026-10-09
 
 ### Changed

@@ -817,14 +817,7 @@ export class MaibaoApi implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const credentials = await this.getCredentials('lmaoApi');
 		const mode = this.getNodeParameter('mode', 0) as string;
-		const configuredBaseUrl = (credentials.lmaoBaseUrl as string | undefined)?.trim();
-		const legacyBaseUrl = (credentials.baseUrl as string | undefined)?.trim();
-		const legacyCustomBaseUrl =
-			legacyBaseUrl && !/^https:\/\/(?:api|ai)\.maibao\.chat(?:\/v1)?\/?$/i.test(legacyBaseUrl)
-				? legacyBaseUrl
-				: undefined;
-		const baseUrl = (configuredBaseUrl || legacyCustomBaseUrl || 'https://ai.lmao.net.cn').replace(/\/+$/, '');
-		const rawBaseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
+		const rawBaseUrl = 'https://ai.lmao.net.cn/v1';
 		const soraBaseUrl = rawBaseUrl.replace(/\/v1$/, '');
 
 		for (let i = 0; i < items.length; i++) {

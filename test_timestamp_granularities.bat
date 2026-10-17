@@ -12,7 +12,7 @@ set API_KEY=YOUR_API_KEY_HERE
 REM 请在这里填入测试音频文件路径
 set AUDIO_FILE=test_audio.mp3
 
-set BASE_URL=https://api.lmao.net.cn/v1
+set BASE_URL=https://ai.lmao.net.cn/v1
 
 echo 请确保：
 echo 1. 已安装 curl（Windows 10+ 自带）

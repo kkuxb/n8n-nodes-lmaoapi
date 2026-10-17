@@ -1,8 +1,8 @@
 {
   "projectName": "n8n-nodes-lmaoapi",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "type": "n8n-community-node",
-  "generated": "2026-10-09",
+  "generated": "2026-10-17",
   "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
   "license": "MIT",
   "author": {
@@ -10,7 +10,7 @@
     "email": "263674673@qq.com"
   },
   "statistics": {
-    "totalSourceLines": 3028,
+    "totalSourceLines": 3005,
     "sourceFiles": 14,
     "testFiles": 14
   },
@@ -41,7 +41,7 @@
       "exports": [
         "MaibaoApi"
       ],
-      "lines": 1280,
+      "lines": 1273,
       "functions": [
         "execute",
         "collectBinaryFromNodes",
@@ -70,10 +70,9 @@
       "exports": [
         "MaibaoApi"
       ],
-      "lines": 43,
+      "lines": 27,
       "properties": [
-        "apiKey",
-        "lmaoBaseUrl"
+        "apiKey"
       ]
     },
     "GptImageUtils": {
@@ -99,9 +98,8 @@
   },
   "api": {
     "baseUrls": {
-      "default": "https://ai.lmao.net.cn/v1",
-      "alternative": "https://api.lmao.net.cn/v1",
-      "sora": "selected API domain without /v1"
+      "fixed": "https://ai.lmao.net.cn/v1",
+      "sora": "https://ai.lmao.net.cn"
     },
     "endpoints": {
       "text": "POST /v1/chat/completions",
@@ -317,8 +315,8 @@
       ]
     },
     "CHANGELOG.md": {
-      "latestVersion": "1.4.3",
-      "date": "2026-10-09"
+      "latestVersion": "1.4.4",
+      "date": "2026-10-17"
     },
     "LICENSE.md": {
       "type": "MIT"
@@ -396,10 +394,15 @@
   },
   "versionHistory": [
     {
+      "version": "1.4.4",
+      "date": "2026-10-17",
+      "status": "current",
+      "notes": "API Key-only credentials; credential testing and all API requests use the fixed AI domain, ignoring saved credential URLs"
+    },
+    {
       "version": "1.4.3",
       "date": "2026-10-09",
-      "status": "current",
-      "notes": "Chunked MP4/M4A AAC transcription; breaking audio output change to timestamped Markdown text only; text default claude-sonnet-5-5"
+      "notes": "Segmented M4A transcription without FFmpeg; timestamped Markdown text output; default text model claude-sonnet-5-5"
     },
     {
       "version": "1.4.2",

@@ -15,7 +15,7 @@ async function execute({ model = 'gpt-image-2', body, download = png, references
 		getInputData: () => [{ json: {}, ...(references ? { binary: { data: { data: png.toString('base64'), mimeType: 'image/png', fileName: 'reference.png' } } } : {}) }],
 		getCredentials: async () => ({ apiKey: 'private-api-key', baseUrl: 'https://api.example.test/v1' }),
 		getNodeParameter: (name, index, fallback) => params[name] ?? fallback,
-		getNode: () => ({ name: 'MaibaoAPI', type: 'n8n-nodes-maibaoapi.maibaoApi', typeVersion: 1, position: [0, 0], parameters: params }),
+		getNode: () => ({ name: 'LmaoAPI', type: 'n8n-nodes-lmaoapi.maibaoApi', typeVersion: 1, position: [0, 0], parameters: params }),
 		continueOnFail: () => continueOnFail,
 		helpers: {
 			getBinaryDataBuffer: async () => png,
@@ -52,7 +52,7 @@ for (const model of GPT_IMAGE_MODELS) {
 			assert.equal(result.error, undefined);
 			assert.equal(result.calls.length, 2);
 			const [post, get] = result.calls;
-			assert.equal(post.url, `https://api.example.test/v1/images/${references ? 'edits' : 'generations'}`);
+			assert.equal(post.url, `https://ai.lmao.net.cn/v1/images/${references ? 'edits' : 'generations'}`);
 			assert.equal(references ? post.body.get('model') : post.body.model, `${model}-c`);
 			assert.equal(references ? post.body.get('response_format') : post.body.response_format, 'b64_json');
 			assert.equal(get.url, imageUrl);

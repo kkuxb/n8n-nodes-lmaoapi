@@ -48,7 +48,7 @@ git push
 - npm 包名、主页、仓库和 Issues 地址
 - n8n 节点显示名与凭证内部名称
 - 默认 API Origin 和 Base URL
-- API 地址下拉框默认使用 `https://ai.lmao.net.cn`，另一个选项为 `https://api.lmao.net.cn`；两者的实际值都包含 `/v1`
+- 凭证仅显示 API Key，凭证测试及节点请求固定使用 `https://ai.lmao.net.cn/v1`；`retiredApiOrigin` 仅用于历史文档替换及防止已停用域名进入运行时代码
 - 本仓库 CI 和发布分支使用 `main`（上游仍为 `master`）
 - Node.js/npm 运行时约束
 - 本项目拥有、同步时必须原样保留的文件
@@ -63,7 +63,7 @@ git push
 
 内部目录、类名和构建入口仍保留 `MaibaoApi`，避免破坏 n8n 包入口兼容性；用户可见名称和凭证标识保持为 `LmaoAPI` / `lmaoApi`。
 
-凭证继续使用本项目的 `lmaoBaseUrl` 字段；旧凭证保存的不带 `/v1` 的地址在请求时自动补齐，已选的 API 域名不会被默认值覆盖。同步时也会转换上游凭证测试中的域名和字段名，并运行本地地址路由回归测试。
+从 1.4.4 起，凭证不再定义 API 地址字段。节点忽略旧凭证中保存的 `lmaoBaseUrl` 和 `baseUrl`，包括已停用的 `https://api.lmao.net.cn` 和旧自定义网关，统一请求 `https://ai.lmao.net.cn/v1`，已有凭证无需重建。Gemini 和视频接口从固定域名派生各自路径。同步时运行新旧凭证路由回归测试，避免重新引入地址选项或旧地址读取逻辑。
 
 ## 文档和版本同步
 

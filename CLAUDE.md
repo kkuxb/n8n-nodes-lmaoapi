@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an n8n community node package that provides integration with LmaoAPI (https://api.lmao.net.cn). It enables users to call AI models through n8n workflows without manually configuring HTTP Request nodes.
+This is an n8n community node package that provides integration with LmaoAPI (https://ai.lmao.net.cn). It enables users to call AI models through n8n workflows without manually configuring HTTP Request nodes.
 
 **Key Features:**
 - Text generation with multimodal support (text + images)
@@ -41,9 +41,8 @@ When the package version is already updated, use `npm run release -- --no-increm
 
 ### File Structure
 
-- `credentials/MaibaoApi.credentials.ts` - Credential definition (API Key + Base URL)
+- `credentials/MaibaoApi.credentials.ts` - Credential definition (API Key only; fixed API URL)
 - `nodes/MaibaoApi/MaibaoApi.node.ts` - Main node implementation
-- `nodes/MaibaoApi/audio/` - AAC extraction, M4A chunking, concurrent transcription and Markdown output; legacy Whisper backend retained
 - `dist/` - Compiled output (published to npm)
 
 ### Core Components
@@ -61,9 +60,8 @@ When the package version is already updated, use `npm run release -- --no-increm
 ### API Integration
 
 **Base URLs:**
-- Default API: `https://ai.lmao.net.cn/v1`
-- Alternative API: `https://api.lmao.net.cn/v1`
-- Sora API: selected API domain with the `/v1` suffix removed
+- Fixed API: `https://ai.lmao.net.cn/v1` (saved credential URLs are ignored)
+- Sora API: `https://ai.lmao.net.cn`
 
 **Endpoints:**
 - Text: `POST /v1/chat/completions`

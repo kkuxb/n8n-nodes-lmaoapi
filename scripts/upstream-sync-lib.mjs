@@ -91,9 +91,9 @@ export function transformBrandDocument(content, config) {
 		.replaceAll('n8n-nodes-MaibaoAPI', brand.packageName)
 		.replaceAll('n8n-nodes-maibaoapi', brand.packageName)
 		.replaceAll('https://maibaoapi.apifox.cn/', brand.apiOrigin)
-		.replaceAll('https://api.maibao.chat', brand.alternativeApiOrigin)
+		.replaceAll('https://api.maibao.chat', brand.retiredApiOrigin)
 		.replaceAll('https://ai.maibao.chat', brand.apiOrigin)
-		.replaceAll('api.maibao.chat', new URL(brand.alternativeApiOrigin).host)
+		.replaceAll('api.maibao.chat', new URL(brand.retiredApiOrigin).host)
 		.replaceAll('ai.maibao.chat', new URL(brand.apiOrigin).host)
 		.replaceAll('MaibaoAPI', brand.displayName)
 		.replaceAll('麦包 API Key', `${brand.displayName} API Key`)
@@ -182,38 +182,22 @@ export function transformNodeSource(content, config) {
 		["icon: 'file:maibaoapi.svg'", 'node icon'],
 		["credentials: [{ name: 'maibaoApi', required: true }]", 'node credential declaration'],
 		["this.getCredentials('maibaoApi')", 'node credential lookup'],
-		[
-			"\t\tconst rawBaseUrl = (credentials.baseUrl as string).replace(/\\/$/, '');\n\t\tconst soraBaseUrl = rawBaseUrl.replace(/\\/v1$/, '');",
-			'node Base URL initialization',
-		],
+		["const rawBaseUrl = 'https://ai.maibao.chat/v1';", 'node fixed API URL'],
 	]) {
 		if (!output.includes(anchor)) {
-			throw new Error(`Missing required upstream anchor: ${label}`);
+			throw new Error('Missing required upstream anchor: ' + label);
 		}
 	}
-
+	if (/credentials\.(?:baseUrl|lmaoBaseUrl)/.test(output)) {
+		throw new Error('Upstream node must ignore saved API addresses');
+	}
 	output = output
 		.replaceAll('MaibaoAPI', brand.displayName)
-		.replaceAll("'maibaoApi'", `'${brand.credentialName}'`)
+		.replaceAll("'maibaoApi'", "'" + brand.credentialName + "'")
 		.replaceAll('file:maibaoapi.png', 'file:maibaoapi.svg')
-		.replaceAll('https://api.maibao.chat', brand.apiOrigin);
-	output = output.replace(
-		"\t\tconst rawBaseUrl = (credentials.baseUrl as string).replace(/\\/$/, '');\n\t\tconst soraBaseUrl = rawBaseUrl.replace(/\\/v1$/, '');",
-		[
-			`\t\tconst configuredBaseUrl = (credentials.${brand.credentialBaseUrlName} as string | undefined)?.trim();`,
-			'\t\tconst legacyBaseUrl = (credentials.baseUrl as string | undefined)?.trim();',
-			'\t\tconst legacyCustomBaseUrl =',
-			'\t\t\tlegacyBaseUrl && !/^https:\\/\\/(?:api|ai)\\.maibao\\.chat(?:\\/v1)?\\/?$/i.test(legacyBaseUrl)',
-			'\t\t\t\t? legacyBaseUrl',
-			'\t\t\t\t: undefined;',
-			`\t\tconst baseUrl = (configuredBaseUrl || legacyCustomBaseUrl || '${brand.apiOrigin}').replace(/\\/+$/, '');`,
-			"\t\tconst rawBaseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;",
-			"\t\tconst soraBaseUrl = rawBaseUrl.replace(/\\/v1$/, '');",
-		].join('\n'),
-	);
-
+		.replaceAll('https://ai.maibao.chat/v1', brand.apiBaseUrl);
 	if (!output.startsWith('/* eslint-disable')) {
-		output = `/* eslint-disable n8n-nodes-base/node-filename-against-convention */\n${output}`;
+		output = '/* eslint-disable n8n-nodes-base/node-filename-against-convention */\n' + output;
 	}
 	return output;
 }
@@ -224,32 +208,23 @@ export function transformCredentialSource(content, config) {
 	for (const [anchor, label] of [
 		["name = 'maibaoApi';", 'credential internal name'],
 		["displayName = 'MaibaoAPI API';", 'credential display name'],
-		["name: 'baseUrl',", 'credential Base URL property name'],
-		["type: 'options',", 'credential Base URL type'],
-		["value: 'https://api.maibao.chat/v1',", 'credential alternative API URL'],
-		["value: 'https://ai.maibao.chat/v1',", 'credential default API URL'],
-		["default: 'https://ai.maibao.chat/v1',", 'credential Base URL default'],
-		["baseURL: '={{$credentials.baseUrl}}',", 'credential test base URL'],
+		["name: 'apiKey',", 'credential API key'],
+		["baseURL: 'https://ai.maibao.chat/v1',", 'credential fixed test base URL'],
 		["url: '/models',", 'credential test URL'],
 	]) {
 		if (!output.includes(anchor)) {
-			throw new Error(`Missing required upstream anchor: ${label}`);
+			throw new Error('Missing required upstream anchor: ' + label);
 		}
 	}
-
-	output = output
-		.replaceAll("name = 'maibaoApi';", `name = '${brand.credentialName}';`)
-		.replaceAll("displayName = 'MaibaoAPI API';", `displayName = '${brand.displayName} API';`)
+	if (/name: '(?:baseUrl|lmaoBaseUrl)'|\$credentials\.(?:baseUrl|lmaoBaseUrl)/.test(output)) {
+		throw new Error('Upstream credential must not expose or read saved API addresses');
+	}
+	return output
+		.replaceAll("name = 'maibaoApi';", "name = '" + brand.credentialName + "';")
+		.replaceAll("displayName = 'MaibaoAPI API';", "displayName = '" + brand.displayName + " API';")
 		.replaceAll('file:maibaoapi.png', 'file:maibaoapi.svg')
-		.replaceAll("documentationUrl = 'https://maibaoapi.apifox.cn/';", `documentationUrl = '${brand.apiOrigin}';`)
-		.replaceAll("name: 'baseUrl',", `name: '${brand.credentialBaseUrlName}',`)
-		.replaceAll('https://api.maibao.chat', brand.alternativeApiOrigin)
-		.replaceAll('https://ai.maibao.chat', brand.apiOrigin)
-		.replaceAll(
-			"baseURL: '={{$credentials.baseUrl}}',",
-			String.raw`baseURL: '={{($credentials.${brand.credentialBaseUrlName} || "${brand.apiBaseUrl}").trim().replace(/\\/+$/, "").replace(/(?:\\/v1)?$/, "/v1")}}',`,
-		);
-	return output;
+		.replaceAll("documentationUrl = 'https://maibaoapi.apifox.cn/';", "documentationUrl = '" + brand.apiOrigin + "';")
+		.replaceAll('https://ai.maibao.chat/v1', brand.apiBaseUrl);
 }
 
 export function transformReadme(content, config) {
@@ -260,12 +235,14 @@ export function transformReadme(content, config) {
 		.replaceAll('`.npm-n8n-cache/`', '`.npm-n8n-cache-node24/`')
 		.replaceAll('优先切到 Node.js 22', '优先确认当前 shell 使用 Node.js 24')
 		.replaceAll('先构建，再运行全部 Node.js 回归测试', '运行全部回归测试（需先构建）')
+		.replaceAll('运行音频输出与 Binary 默认值测试', '构建并验证 AAC 提取、分段转写、Markdown 输出及旧 Whisper 后端')
 		.replaceAll('但 2026-10-09 的麦包', '但上游在 2026-10-09 对麦包服务的')
 		.replaceAll('本节点据此向麦包固定请求 Base64', `本节点跟随上游向 ${config.brand.displayName} 固定请求 Base64`)
 		.replaceAll('两个 GPT-Image-2.5 模型及参考图编辑接口尚未完成该参数的在线验证。', `两个 GPT-Image-2.5 模型及参考图编辑接口尚未完成该参数的在线验证；${config.brand.displayName} 的线上响应行为也尚未验证。`)
 		.replace(/npm run release -- \d+\.\d+\.\d+ --npm\.allowSameVersion/g, 'npm run release -- --no-increment')
 		.replace(/如果已手动更新版本号[^\n]+：/, '版本号已更新时，使用 `--no-increment` 保持 package.json 中的版本不变：')
-		.replace('GitHub 发布需要配置相应认证。', 'GitHub 发布说明自动读取 CHANGELOG 对应版本。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。');
+		.replace('GitHub 发布需要配置相应认证。', 'GitHub 发布说明自动读取 CHANGELOG 对应版本。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。')
+		.replace('GitHub 发布说明自动读取 CHANGELOG 对应版本。', '发布预览与 GitHub 发布说明均读取 CHANGELOG 对应版本，避免 Windows 对 Git 修订表达式的转义差异。');
 	for (const patch of config.changelogPatches ?? []) {
 		const heading = `## ${patch.version} 更新内容\n`;
 		if (!output.includes(heading)) continue;
@@ -284,6 +261,15 @@ export function transformDeveloperDocument(content, config) {
 		.replaceAll('`master`', `\`${config.brand.branch}\``)
 		.replaceAll('Node.js 22', 'Node.js 24')
 		.replaceAll('**Node Version:** 22', '**Node Version:** 24')
+		.replaceAll('API Key + Base URL', 'API Key only; fixed AI endpoint')
+		.replaceAll('Audio transcription (Whisper-1)', 'Audio transcription (qwen3.5-omni-flash; MP4/M4A AAC input, timestamped Markdown text output)')
+		.replaceAll('**Audio Transcription** - Whisper-1', '**Audio Transcription** - qwen3.5-omni-flash (MP4/M4A AAC input, timestamped Markdown text output)')
+		.replaceAll('**Audio Transcription:** `whisper-1`', '**Audio Transcription:** `qwen3.5-omni-flash`; legacy `whisper-1` backend retained behind `ACTIVE_AUDIO_BACKEND`. Success output contains only timestamped Markdown `text`.')
+		.replaceAll('`gpt-5.6-sol` (default)', '`claude-sonnet-5-5` (default)')
+		.replaceAll('- Audio: `POST /v1/audio/transcriptions`', '- Audio: `POST /v1/chat/completions`; legacy Whisper backend uses `POST /v1/audio/transcriptions`')
+		.replaceAll('- **Audio:** `POST /v1/audio/transcriptions`', '- **Audio:** `POST /v1/chat/completions` (legacy Whisper backend: `POST /v1/audio/transcriptions`)')
+		.replaceAll('`npm test` (includes build)', '`npm run build`, `npm test`')
+		.replaceAll('Build and run regression tests (`npm test`)', 'Build and run regression tests (`npm run build && npm test`)')
 		.replace(/`npm test` builds and runs \w+ test files/g, 'After building, `npm test` runs all test files')
 		.replaceAll('Run `npm test` locally to build and execute', 'Run `npm run build` followed by `npm test` locally to execute');
 }
@@ -493,10 +479,32 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		projectIndex.repository = config.brand.repository.replace(/^git\+/, '');
 		projectIndex.scripts = brandedPackage.scripts;
 		if (projectIndex.modules?.MaibaoApiCredentials) {
-			projectIndex.modules.MaibaoApiCredentials.properties = ['apiKey', config.brand.credentialBaseUrlName];
+			projectIndex.modules.MaibaoApiCredentials.properties = ['apiKey'];
 		}
 		if (projectIndex.statistics) {
+			const sourceFiles = listManagedFiles(candidateRoot).filter((file) => /^(nodes|credentials)\/.*\.ts$/.test(file));
+			const countLines = (file) => fs.readFileSync(path.join(candidateRoot, file), 'utf8').trimEnd().split(/\r?\n/).length;
+			projectIndex.statistics.sourceFiles = sourceFiles.length;
+			projectIndex.statistics.totalSourceLines = sourceFiles.reduce((sum, file) => sum + countLines(file), 0);
 			projectIndex.statistics.testFiles = fs.readdirSync(path.join(candidateRoot, 'test')).filter((file) => file.endsWith('.test.js')).length;
+			for (const module of Object.values(projectIndex.modules ?? {})) {
+				if (module.path && 'lines' in module) module.lines = countLines(module.path);
+			}
+			const markdownPath = path.join(candidateRoot, 'PROJECT_INDEX.md');
+			if (fs.existsSync(markdownPath)) {
+				fs.writeFileSync(markdownPath, fs.readFileSync(markdownPath, 'utf8').replace(
+					/\*\*Total Source Code:\*\* \d+ lines across \d+ TypeScript files/,
+					`**Total Source Code:** ${projectIndex.statistics.totalSourceLines} lines across ${sourceFiles.length} TypeScript files`,
+				));
+			}
+		}
+		projectIndex.modules.Audio = { path: 'nodes/MaibaoApi/audio/', purpose: 'AAC extraction and M4A chunking, concurrent Omni transcription and Markdown output; legacy Whisper backend retained' };
+		// Upstream 1.4.4's index still describes the pre-1.4.3 models and audio endpoint.
+		if (brandedPackage.version === '1.4.4') {
+			projectIndex.api.models.text.default = 'claude-sonnet-5-5';
+			projectIndex.api.models.audio = { default: 'qwen3.5-omni-flash', legacy: 'whisper-1' };
+			projectIndex.api.endpoints.audio = 'POST /v1/chat/completions';
+			projectIndex.api.endpoints.audioWhisperLegacy = 'POST /v1/audio/transcriptions';
 		}
 		if (projectIndex.release) {
 			projectIndex.release.branch = config.brand.branch;
@@ -512,23 +520,8 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 				projectIndex.ci.steps.splice(projectIndex.ci.steps.indexOf('npm test'), 0, 'npm run build');
 			}
 		}
-		if (Array.isArray(projectIndex.credentials?.type?.properties)) {
-			projectIndex.credentials.type.properties = projectIndex.credentials.type.properties.map((property) =>
-				property === 'baseUrl' ? config.brand.credentialBaseUrlName : property,
-			);
-		}
 		projectIndex.keywords = projectIndex.keywords?.map((keyword) => transformKeyword(keyword, config));
 		writeJson(projectIndexPath, projectIndex, 2);
-	}
-	const projectIndexMarkdownPath = path.join(candidateRoot, 'PROJECT_INDEX.md');
-	if (fs.existsSync(projectIndexMarkdownPath)) {
-		const projectIndexMarkdown = fs
-			.readFileSync(projectIndexMarkdownPath, 'utf8')
-			.replace(
-				'`baseUrl` - Selectable API base URL',
-				`\`${config.brand.credentialBaseUrlName}\` - Selectable API base URL`,
-			);
-		fs.writeFileSync(projectIndexMarkdownPath, projectIndexMarkdown);
 	}
 
 	const gitignorePath = path.join(candidateRoot, '.gitignore');
@@ -546,14 +539,10 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		releaseConfig.github.releaseNotes = 'node scripts/release-notes.mjs ${version}';
 		writeJson(releaseConfigPath, releaseConfig);
 	}
-	const credentialTestPath = path.join(candidateRoot, 'test', 'credentials.test.js');
-	fs.writeFileSync(
-		credentialTestPath,
-		transformBrandDocument(fs.readFileSync(credentialTestPath, 'utf8'), config).replaceAll(
-			"property.name === 'baseUrl'",
-			`property.name === '${config.brand.credentialBaseUrlName}'`,
-		),
-	);
+	for (const file of ['credentials.test.js', 'gpt-image-response.test.js', 'image-generation-config.test.js']) {
+		const testPath = path.join(candidateRoot, 'test', file);
+		fs.writeFileSync(testPath, transformBrandDocument(fs.readFileSync(testPath, 'utf8'), config));
+	}
 	const devScriptPath = path.join(candidateRoot, 'scripts', 'dev.mjs');
 	fs.writeFileSync(devScriptPath, transformDevScript(fs.readFileSync(devScriptPath, 'utf8')));
 	const devScriptTestPath = path.join(candidateRoot, 'test', 'dev-script-config.test.js');
@@ -609,23 +598,22 @@ export function assertCandidateBranding(candidateRoot, config, expectedVersion) 
 		throw new Error('Upstream brand leaked into nodes/MaibaoApi/MaibaoApi.node.ts');
 	}
 	if (
-		!nodeSource.includes(`credentials.${config.brand.credentialBaseUrlName}`) ||
-		!nodeSource.includes(`'${config.brand.apiOrigin}'`)
+		!nodeSource.includes("const rawBaseUrl = '" + config.brand.apiBaseUrl + "';") ||
+		/credentials\.(?:baseUrl|lmaoBaseUrl)|(?:api|ai)\.maibao\.chat/.test(nodeSource) ||
+		nodeSource.includes(config.brand.retiredApiOrigin)
 	) {
-		throw new Error('Node Base URL migration invariant failed');
+		throw new Error('Node fixed API URL invariant failed');
 	}
 	const credentialSource = fs.readFileSync(
 		resolveManagedPath(candidateRoot, 'credentials/MaibaoApi.credentials.ts'),
 		'utf8',
 	);
 	if (
-		!credentialSource.includes(`name: '${config.brand.credentialBaseUrlName}'`) ||
-		!credentialSource.includes("type: 'options'") ||
-		!credentialSource.includes(`default: '${config.brand.apiBaseUrl}'`) ||
-		!credentialSource.includes(`value: '${config.brand.apiBaseUrl}'`) ||
-		!credentialSource.includes(`value: '${config.brand.alternativeApiOrigin}/v1'`)
+		!credentialSource.includes("baseURL: '" + config.brand.apiBaseUrl + "'") ||
+		/name: '(?:baseUrl|lmaoBaseUrl)'|\$credentials\.(?:baseUrl|lmaoBaseUrl)/.test(credentialSource) ||
+		credentialSource.includes(config.brand.retiredApiOrigin)
 	) {
-		throw new Error('Credential Base URL invariant failed');
+		throw new Error('Credential fixed API URL invariant failed');
 	}
 
 	const changelog = fs.readFileSync(path.join(candidateRoot, 'CHANGELOG.md'), 'utf8');

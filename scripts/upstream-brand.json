@@ -7,17 +7,16 @@
 		"packageName": "n8n-nodes-lmaoapi",
 		"displayName": "LmaoAPI",
 		"credentialName": "lmaoApi",
-		"credentialBaseUrlName": "lmaoBaseUrl",
 		"apiOrigin": "https://ai.lmao.net.cn",
 		"apiBaseUrl": "https://ai.lmao.net.cn/v1",
-		"alternativeApiOrigin": "https://api.lmao.net.cn",
 		"branch": "main",
 		"homepage": "https://github.com/kkuxb/n8n-nodes-lmaoapi#readme",
 		"repository": "git+https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
 		"repositoryWeb": "https://github.com/kkuxb/n8n-nodes-lmaoapi",
 		"issues": "https://github.com/kkuxb/n8n-nodes-lmaoapi/issues",
 		"nodeEngine": "24.x",
-		"packageManager": "npm@11.12.1"
+		"packageManager": "npm@11.12.1",
+		"retiredApiOrigin": "https://api.lmao.net.cn"
 	},
 	"changelogPatches": [
 		{
