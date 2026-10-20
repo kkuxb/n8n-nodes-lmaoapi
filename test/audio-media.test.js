@@ -97,6 +97,121 @@ test('co64 offsets, version 1 mdhd and a leading empty edit remain correctly map
 	assert.equal([...splitM4a(result, 1)][0].startSeconds, 1);
 });
 
+test('packet timing overrides shorter, longer and unknown mdhd durations without changing audio', () => {
+	const original = inspectAac(source);
+	const totalTicks = original.samples.reduce((sum, sample) => sum + sample.duration, 0);
+	for (const declared of [
+		totalTicks - original.mediaStartTicks,
+		totalTicks + 48000,
+		0,
+		0xffffffff,
+	]) {
+		const changed = Buffer.from(source);
+		changed.writeUInt32BE(declared, changed.indexOf('mdhd') + 20);
+		const result = inspectAac(changed);
+		assert.equal(result.durationSeconds, original.durationSeconds);
+		assert.equal(result.mediaStartTicks, original.mediaStartTicks);
+		assert.deepEqual(
+			result.samples.map((s) => packet(result, s)),
+			original.samples.map((s) => packet(original, s)),
+		);
+		const chunks = [...splitM4a(result, 1)];
+		assert.equal(chunks.at(-1).ownedEndSeconds, original.durationSeconds);
+		assert.deepEqual(
+			chunks.map((c) => c.bytes),
+			[...splitM4a(original, 1)].map((c) => c.bytes),
+		);
+	}
+});
+
+test('unknown version 1 duration is recovered from packets without interpreting the uint64 sentinel', () => {
+	const original = inspectAac(source);
+	const updated = rewrite(source, (type, body) => {
+		if (type === 'mdhd') {
+			const b = Buffer.alloc(36);
+			b[0] = 1;
+			b.writeUInt32BE(body.readUInt32BE(12), 20);
+			b.writeBigUInt64BE(0xffffffffffffffffn, 24);
+			body.copy(b, 32, 20);
+			return box(type, b);
+		}
+		if (type === 'stco') {
+			const b = Buffer.from(body);
+			for (let i = 0; i < b.readUInt32BE(4); i++)
+				b.writeUInt32BE(b.readUInt32BE(8 + i * 4) + 12, 8 + i * 4);
+			return box(type, b);
+		}
+	});
+	const result = inspectAac(updated);
+	assert.equal(result.durationSeconds, 3.3);
+	assert.deepEqual(
+		result.samples.map((s) => packet(result, s)),
+		original.samples.map((s) => packet(original, s)),
+	);
+});
+
+test('without edit lists the full packet timeline is used, even when mdhd would truncate the tail', () => {
+	const original = inspectAac(source);
+	const full = Buffer.from(
+		muxM4a(
+			{
+				...original,
+				mediaStartTicks: 0,
+				durationTicks: original.samples.reduce((sum, s) => sum + s.duration, 0),
+			},
+			0,
+			original.samples.length,
+		),
+	);
+	assert.equal(full.indexOf('elst'), -1);
+	full.writeUInt32BE(48000, full.indexOf('mdhd') + 20);
+	const result = inspectAac(full);
+	assert.equal(
+		result.durationTicks,
+		original.samples.reduce((sum, s) => sum + s.duration, 0),
+	);
+	assert.equal([...splitM4a(result, 1)].at(-1).ownedEndSeconds, result.durationSeconds);
+});
+
+test('tail rounding is clamped to available packets while intentional trims are preserved', () => {
+	const original = inspectAac(source);
+	const totalTicks = original.samples.reduce((sum, s) => sum + s.duration, 0);
+	const movieScale = source.readUInt32BE(source.indexOf('mvhd') + 16);
+	const changed = Buffer.from(source);
+	const roundedDuration =
+		Math.ceil(((totalTicks - original.mediaStartTicks) * movieScale) / original.timescale) + 1;
+	changed.writeUInt32BE(roundedDuration, changed.indexOf('elst') + 12);
+	const result = inspectAac(changed);
+	assert.equal(result.durationTicks, totalTicks - original.mediaStartTicks);
+	for (const chunk of splitM4a(result, 1))
+		assert.equal(inspectAac(chunk.bytes).durationSeconds, chunk.durationSeconds);
+	changed.writeUInt32BE(movieScale, changed.indexOf('elst') + 12);
+	changed.writeUInt32BE(24000, changed.indexOf('elst') + 16);
+	const trimmed = inspectAac(changed);
+	assert.equal(trimmed.mediaStartTicks, 24000);
+	assert.equal(trimmed.durationSeconds, 1);
+	assert.equal([...splitM4a(trimmed, 1)].at(-1).ownedEndSeconds, 1);
+});
+
+test('timing compatibility still rejects missing packets, invalid byte ranges and unavailable edits', () => {
+	const original = inspectAac(source);
+	const totalTicks = original.samples.reduce((sum, s) => sum + s.duration, 0);
+	for (const edit of [
+		(b) => b.writeUInt32BE(0, b.indexOf('stts') + 12),
+		(b) => b.writeUInt32BE(b.readUInt32BE(b.indexOf('stts') + 12) - 1, b.indexOf('stts') + 12),
+		(b) => b.writeUInt32BE(0, b.indexOf('stts') + 16),
+		(b) => b.writeUInt32BE(0xffffffff, b.indexOf('stts') + 16),
+		(b) => b.writeUInt32BE(b.length, b.indexOf('stco') + 12),
+		(b) => b.writeUInt32BE(totalTicks, b.indexOf('elst') + 16),
+		(b) => b.writeUInt32BE(totalTicks + 48000, b.indexOf('elst') + 12),
+	]) {
+		const changed = Buffer.from(source);
+		changed.writeUInt32BE(0, changed.indexOf('mdhd') + 20);
+		edit(changed);
+		assert.throws(() => inspectAac(changed), /stts|sample|mdat|duration|edit/i);
+	}
+});
+
 test('malformed input, sample overflow, unsupported codecs and fragmented media fail before submission', () => {
 	for (const data of [
 		Buffer.alloc(0),

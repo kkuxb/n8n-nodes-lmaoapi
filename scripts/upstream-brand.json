@@ -14,11 +14,19 @@
 		"repository": "git+https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
 		"repositoryWeb": "https://github.com/kkuxb/n8n-nodes-lmaoapi",
 		"issues": "https://github.com/kkuxb/n8n-nodes-lmaoapi/issues",
-		"nodeEngine": "24.x",
+		"nodeEngine": "^22.16.0 || ^24.0.0",
+		"developmentNodeVersion": "24",
 		"packageManager": "npm@11.12.1",
 		"retiredApiOrigin": "https://api.lmao.net.cn"
 	},
 	"changelogPatches": [
+		{
+			"version": "1.4.5",
+			"section": "Fixed",
+			"entries": [
+				"将节点运行时声明从仅限 Node.js 24 改为支持 Node.js 22.16+（22 系列）和 24 系列，修复 Node.js 22 下 npm 选择旧兼容版本而导致 n8n 持续提示更新的问题。开发和发布工具继续使用 Node.js 24；同步规则及 CI 增加对应约束和兼容性验证。"
+			]
+		},
 		{
 			"version": "1.4.2",
 			"section": "Fixed",

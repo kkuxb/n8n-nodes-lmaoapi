@@ -244,6 +244,26 @@ export async function transcribeChunks(
 	}
 }
 
+function audioPreparationError(error: unknown): Error {
+	const detail = error instanceof Error ? error.message : 'Unknown media parsing error';
+	const reasons: [RegExp, string][] = [
+		[/Fragmented MP4/, '当前尚不支持分片式 MP4，请提供普通 MP4/M4A 文件'],
+		[/No audio track/, '文件中没有音轨，无法转写'],
+		[/Multiple audio tracks/, '文件包含多条音轨，当前尚不支持自动选择音轨'],
+		[
+			/Only .*AAC|Only unencrypted mp4a|AAC esds|protected/,
+			'音频编码或加密方式不支持，当前支持未加密的 AAC-LC/HE-AAC 音轨',
+		],
+		[/Audio edit exceeds available samples/, '音轨裁剪范围超出可用音频，无法恢复缺失的内容'],
+		[/audio edit/i, '音轨编辑结构尚不支持或裁剪信息无效'],
+		[/128 MiB/, '文件大小超出限制，单文件需为 8 字节至 128 MiB'],
+	];
+	const reason =
+		reasons.find(([pattern]) => pattern.test(detail))?.[1] ??
+		'文件结构损坏、不完整，或包含尚不支持的音轨结构';
+	return new Error(`音频解析失败：${reason}。诊断：${detail}`);
+}
+
 export async function transcribeOmni(
 	context: IExecuteFunctions,
 	input: Uint8Array,
@@ -254,9 +274,7 @@ export async function transcribeOmni(
 	try {
 		chunks = prepareAudioChunks(input);
 	} catch (error) {
-		throw new Error(
-			`无法处理音频文件：当前支持普通 MP4/M4A 中的 AAC 音轨。${(error as Error).message}`,
-		);
+		throw audioPreparationError(error);
 	}
 	return transcribeChunks(
 		chunks,

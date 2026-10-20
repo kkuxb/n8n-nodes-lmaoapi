@@ -70,6 +70,7 @@ test('package metadata follows upstream version and dependencies while retaining
 	assert.deepEqual(output.devDependencies, upstreamPackage.devDependencies);
 	assert.equal(output.scripts['sync-upstream'], 'node scripts/sync-upstream.mjs');
 	assert.equal(output.scripts.test, 'node --test test/*.test.js');
+	assert.deepEqual(output.engines, { node: '^22.16.0 || ^24.0.0' });
 });
 
 test('package lock keeps the upstream dependency graph and updates branded root metadata', async () => {
@@ -89,6 +90,7 @@ test('package lock keeps the upstream dependency graph and updates branded root 
 	assert.equal(output.name, 'n8n-nodes-lmaoapi');
 	assert.equal(output.version, '9.8.7');
 	assert.equal(output.packages[''].name, 'n8n-nodes-lmaoapi');
+	assert.deepEqual(output.packages[''].engines, brandedPackage.engines);
 	assert.deepEqual(output.packages['node_modules/typescript'], { version: '5.9.2' });
 });
 
@@ -126,6 +128,12 @@ test('CI and release documentation target the LmaoAPI main branch', async () => 
 	assert.match(workflow, /npm test/);
 	assert.match(workflow, /npm run build && npm test/);
 	assert.match(workflow, /LANG: zh_CN.UTF-8/);
+	assert.match(workflow, /runtime-node22:/);
+	assert.match(workflow, /needs: build/);
+	assert.match(workflow, /node-version: '22\.16\.0'/);
+	assert.match(workflow, /actions\/upload-artifact@v4/);
+	assert.match(workflow, /actions\/download-artifact@v4/);
+	assert.equal(transformCiWorkflow(workflow, config), workflow);
 	assert.equal(transformReadme('在 `master` 分支完成测试后发布。', config), '在 `main` 分支完成测试后发布。');
 });
 
@@ -145,10 +153,11 @@ test('brand documents retain upstream change content and replace only identity a
 		'set BASE_URL=https://api.lmao.net.cn/v1',
 	);
 	const changelog = transformChangelog(
-		'# Changelog\n\n## [1.4.2] - 2026-10-09\n\n## [1.4.0] - 2026-09-13\n\n## [1.3.5] - 2026-08-03\n\n### Added\n\n- 上游功能\n\n## [1.3.4] - 2026-07-31\n',
+		'# Changelog\n\n## [1.4.5] - 2026-10-20\n\n## [1.4.2] - 2026-10-09\n\n## [1.4.0] - 2026-09-13\n\n## [1.3.5] - 2026-08-03\n\n### Added\n\n- 上游功能\n\n## [1.3.4] - 2026-07-31\n',
 		config,
 	);
 	assert.match(changelog, /## \[1\.3\.5\][\s\S]*### Fixed[\s\S]*https:\/\/api\.lmao\.net\.cn[\s\S]*## \[1\.3\.4\]/);
+	assert.match(changelog, /## \[1\.4\.5\][\s\S]*Node\.js 22\.16\+[\s\S]*## \[1\.4\.2\]/);
 });
 
 test('dev tooling follows its upstream source and adds only the brand cache cleanup overlay', async () => {

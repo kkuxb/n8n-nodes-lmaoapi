@@ -243,6 +243,10 @@ export function transformReadme(content, config) {
 		.replace(/如果已手动更新版本号[^\n]+：/, '版本号已更新时，使用 `--no-increment` 保持 package.json 中的版本不变：')
 		.replace('GitHub 发布需要配置相应认证。', 'GitHub 发布说明自动读取 CHANGELOG 对应版本。需要设置 `GITHUB_TOKEN`；已登录 GitHub CLI 时，可在 PowerShell 中执行 `$env:GITHUB_TOKEN = gh auth token`。')
 		.replace('GitHub 发布说明自动读取 CHANGELOG 对应版本。', '发布预览与 GitHub 发布说明均读取 CHANGELOG 对应版本，避免 Windows 对 Git 修订表达式的转义差异。');
+	const runtimeNote = '节点运行时支持 Node.js 22.16+（22 系列）和 24 系列；构建、开发服务器和发布工具使用 Node.js 24。运行时版本声明与开发工具分开，避免 Node.js 22 环境中的 npm 版本选择导致 n8n 在已安装最新版时仍提示更新。';
+	if (!output.includes(runtimeNote)) {
+		output = output.replace('## 安装\n', `## 安装\n\n${runtimeNote}\n`);
+	}
 	for (const patch of config.changelogPatches ?? []) {
 		const heading = `## ${patch.version} 更新内容\n`;
 		if (!output.includes(heading)) continue;
@@ -255,7 +259,7 @@ export function transformReadme(content, config) {
 }
 
 export function transformDeveloperDocument(content, config) {
-	return transformBrandDocument(content, config)
+	let output = transformBrandDocument(content, config)
 		.replace(/npm run release -- \d+\.\d+\.\d+ --npm\.allowSameVersion/g, 'npm run release -- --no-increment')
 		.replace(/\(replace `\d+\.\d+\.\d+` with the target version\)/g, '(uses the version already in package.json)')
 		.replaceAll('`master`', `\`${config.brand.branch}\``)
@@ -272,6 +276,17 @@ export function transformDeveloperDocument(content, config) {
 		.replaceAll('Build and run regression tests (`npm test`)', 'Build and run regression tests (`npm run build && npm test`)')
 		.replace(/`npm test` builds and runs \w+ test files/g, 'After building, `npm test` runs all test files')
 		.replaceAll('Run `npm test` locally to build and execute', 'Run `npm run build` followed by `npm test` locally to execute');
+	const runtimeNote = `Published node runtime: Node.js \`${config.brand.nodeEngine}\`. Build, development and release tooling use Node.js ${config.brand.developmentNodeVersion}. CI also runs the Node.js 24 build's full regression suite on Node.js 22.16.0.`;
+	if (!output.includes('Published node runtime:')) {
+		output = output.replace('## Development Commands\n', `## Development Commands\n\n${runtimeNote}\n`);
+	}
+	if (!output.includes('**Node Runtime:**')) {
+		output = output.replace(/(- \*\*Version:\*\* [^\n]+\n)/, `$1- **Node Runtime:** \`${config.brand.nodeEngine}\`; development and build tooling use Node.js ${config.brand.developmentNodeVersion}\n`);
+	}
+	if (!output.includes('**Runtime Compatibility:**')) {
+		output = output.replace('- **Node Version:** 24\n', '- **Node Version:** 24\n- **Runtime Compatibility:** Node.js 22.16.0 runs the full regression suite against the Node.js 24 build\n');
+	}
+	return output;
 }
 
 export function transformGitignore(content) {
@@ -285,7 +300,7 @@ export function transformGitignore(content) {
 
 export function transformCiWorkflow(content, config) {
 	let output = normalizeText(content)
-		.replace(/node-version: ['"]22['"]/, "node-version: '24'")
+		.replace(/node-version: ['"]22['"]/, `node-version: '${config.brand.developmentNodeVersion}'`)
 		.replace(/^(\s*- )master$/m, `$1${config.brand.branch}`);
 	if (!output.includes('LANG: zh_CN.UTF-8')) {
 		output = output.replace('    runs-on: ubuntu-latest', '    runs-on: ubuntu-latest\n    env:\n      LANG: zh_CN.UTF-8');
@@ -295,6 +310,41 @@ export function transformCiWorkflow(content, config) {
 	}
 	if (!output.includes('npm run build')) {
 		output = output.replace("run: 'npm test'", "run: 'npm run build && npm test'");
+	}
+	if (!output.includes('runtime-node22:')) {
+		output = `${output.trimEnd()}
+
+      - name: Upload built node
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-node
+          path: dist/
+
+  runtime-node22:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      LANG: zh_CN.UTF-8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22 runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+
+      - name: Install test dependencies
+        run: 'npm ci --ignore-scripts'
+
+      - name: Download Node.js 24 build
+        uses: actions/download-artifact@v4
+        with:
+          name: built-node
+          path: dist/
+
+      - name: Test Node.js 22 compatibility
+        run: 'npm test'
+`;
 	}
 	return output;
 }
@@ -478,6 +528,7 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		projectIndex.projectName = config.brand.packageName;
 		projectIndex.repository = config.brand.repository.replace(/^git\+/, '');
 		projectIndex.scripts = brandedPackage.scripts;
+		projectIndex.runtime = { node: config.brand.nodeEngine, developmentNode: config.brand.developmentNodeVersion };
 		if (projectIndex.modules?.MaibaoApiCredentials) {
 			projectIndex.modules.MaibaoApiCredentials.properties = ['apiKey'];
 		}
@@ -511,7 +562,8 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 			projectIndex.release.releaseNotes = 'CHANGELOG.md';
 		}
 		if (projectIndex.ci) {
-			projectIndex.ci.nodeVersion = config.brand.nodeEngine.replace('.x', '');
+			projectIndex.ci.nodeVersion = config.brand.developmentNodeVersion;
+			projectIndex.ci.runtimeTestNodeVersion = '22.16.0';
 			projectIndex.ci.triggers = projectIndex.ci.triggers.map((trigger) =>
 				trigger === 'push:master' ? `push:${config.brand.branch}` : trigger,
 			);
@@ -573,6 +625,12 @@ export function assertCandidateBranding(candidateRoot, config, expectedVersion) 
 	}
 	if (packageJson.name !== config.brand.packageName || packageLock.name !== config.brand.packageName) {
 		throw new Error('Package brand invariant failed');
+	}
+	if (
+		packageJson.engines?.node !== config.brand.nodeEngine ||
+		packageLock.packages?.['']?.engines?.node !== config.brand.nodeEngine
+	) {
+		throw new Error('Package runtime engine invariant failed');
 	}
 
 	const brandSurfaces = [

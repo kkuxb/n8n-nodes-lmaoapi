@@ -50,7 +50,7 @@ git push
 - 默认 API Origin 和 Base URL
 - 凭证仅显示 API Key，凭证测试及节点请求固定使用 `https://ai.lmao.net.cn/v1`；`retiredApiOrigin` 仅用于历史文档替换及防止已停用域名进入运行时代码
 - 本仓库 CI 和发布分支使用 `main`（上游仍为 `master`）
-- Node.js/npm 运行时约束
+- 节点运行时范围 `^22.16.0 || ^24.0.0` 与开发工具版本 `24` 分开声明；npm 开发工具版本继续固定
 - 本项目拥有、同步时必须原样保留的文件
 - 已退役、应从上游快照中删除的旧品牌资源
 
@@ -78,6 +78,8 @@ git push
 - `PROJECT_INDEX.json`
 
 因此上游版本号、功能说明、变更记录和完整依赖图会同步更新；LmaoAPI 名称、安装包名、仓库链接和 API 地址不会被上游品牌覆盖。
+
+`brand.nodeEngine` 仅控制发布包的 `engines.node`；`brand.developmentNodeVersion` 控制 CI 构建版本。CI 在 Node.js 24 构建后，将同一份产物交给 Node.js 22.16.0 执行全部回归测试，避免再次将开发工具的 Node.js 24 要求误写成节点的运行时限制。
 
 ## 安全失败条件
 

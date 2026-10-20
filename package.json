@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-lmaoapi",
-	"version": "1.4.4",
+	"version": "1.4.5",
 	"description": "便捷调用 LmaoAPI 进行文字生成、图像生成、音频转文本。",
 	"license": "MIT",
 	"homepage": "https://github.com/kkuxb/n8n-nodes-lmaoapi#readme",
@@ -66,6 +66,6 @@
 	},
 	"packageManager": "npm@11.12.1",
 	"engines": {
-		"node": "24.x"
+		"node": "^22.16.0 || ^24.0.0"
 	}
 }

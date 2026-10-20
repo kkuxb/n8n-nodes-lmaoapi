@@ -1,8 +1,8 @@
 {
   "projectName": "n8n-nodes-lmaoapi",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "type": "n8n-community-node",
-  "generated": "2026-10-17",
+  "generated": "2026-10-20",
   "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
   "license": "MIT",
   "author": {
@@ -10,7 +10,7 @@
     "email": "263674673@qq.com"
   },
   "statistics": {
-    "totalSourceLines": 3005,
+    "totalSourceLines": 3031,
     "sourceFiles": 14,
     "testFiles": 14
   },
@@ -41,7 +41,7 @@
       "exports": [
         "MaibaoApi"
       ],
-      "lines": 1273,
+      "lines": 1276,
       "functions": [
         "execute",
         "collectBinaryFromNodes",
@@ -91,6 +91,10 @@
       "path": "nodes/MaibaoApi/GptImageDiagnostics.ts",
       "purpose": "Sanitized, serializable image failure diagnostics"
     },
+    "AudioMedia": {
+      "path": "nodes/MaibaoApi/audio/M4aMedia.ts",
+      "purpose": "Pure JavaScript AAC extraction, packet-derived duration, presentation trims and M4A chunking without runtime dependencies"
+    },
     "Audio": {
       "path": "nodes/MaibaoApi/audio/",
       "purpose": "AAC extraction and M4A chunking, concurrent Omni transcription and Markdown output; legacy Whisper backend retained"
@@ -112,7 +116,7 @@
       "imageGptGenerate": "POST /v1/images/generations",
       "imageGptEdit": "POST /v1/images/edits",
       "audio": "POST /v1/chat/completions",
-      "audioWhisperLegacy": "POST /v1/audio/transcriptions"
+      "audioLegacy": "POST /v1/audio/transcriptions"
     },
     "models": {
       "text": {
@@ -289,7 +293,8 @@
     "triggers": [
       "pull_request",
       "push:main"
-    ]
+    ],
+    "runtimeTestNodeVersion": "22.16.0"
   },
   "documentation": {
     "README.md": {
@@ -315,8 +320,8 @@
       ]
     },
     "CHANGELOG.md": {
-      "latestVersion": "1.4.4",
-      "date": "2026-10-17"
+      "latestVersion": "1.4.5",
+      "date": "2026-10-20"
     },
     "LICENSE.md": {
       "type": "MIT"
@@ -390,13 +395,43 @@
         "retryWholeNode": false
       },
       "gptImageRequestFormat": "b64_json"
+    },
+    "audioTranscription": {
+      "backend": "omni",
+      "containers": [
+        "mp4",
+        "m4a"
+      ],
+      "codecs": [
+        "AAC-LC",
+        "HE-AAC"
+      ],
+      "timingSource": "complete stts packet timeline",
+      "preservePrimingAndTrims": true,
+      "tailRounding": "at most one final packet or one movie-timebase unit",
+      "maxInputBytes": 134217728,
+      "maxSamples": 500000,
+      "output": "timestamped Markdown text",
+      "runtimeDependencies": [],
+      "unsupported": [
+        "fragmented MP4",
+        "non-AAC codecs",
+        "multiple audio tracks",
+        "complex edit lists",
+        "encrypted audio"
+      ]
     }
   },
   "versionHistory": [
     {
+      "version": "1.4.5",
+      "date": "2026-10-20",
+      "status": "current",
+      "notes": "Recover inaccurate/unknown AAC duration from packet timing; preserve edits, improve input diagnostics and keep dependency-free installation"
+    },
+    {
       "version": "1.4.4",
       "date": "2026-10-17",
-      "status": "current",
       "notes": "API Key-only credentials; credential testing and all API requests use the fixed AI domain, ignoring saved credential URLs"
     },
     {
@@ -454,5 +489,9 @@
     "gpt-image-2.5-flare",
     "音频转文本",
     "nano banana2.1"
-  ]
+  ],
+  "runtime": {
+    "node": "^22.16.0 || ^24.0.0",
+    "developmentNode": "24"
+  }
 }

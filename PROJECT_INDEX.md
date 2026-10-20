@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
-**Generated:** 2026-10-17
-**Version:** 1.4.4
+**Generated:** 2026-10-20
+**Version:** 1.4.5
 **Type:** n8n Community Node Package
 
 ---
@@ -35,7 +35,7 @@ n8n-nodes-lmaoapi/
 └── LICENSE.md                      # MIT License
 ```
 
-**Total Source Code:** 3005 lines across 14 TypeScript files
+**Total Source Code:** 3031 lines across 14 TypeScript files
 
 ---
 
@@ -108,7 +108,8 @@ API requests and credential testing use the fixed URL `https://ai.lmao.net.cn/v1
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.4.4
+- **Version:** 1.4.5
+- **Node Runtime:** `^22.16.0 || ^24.0.0`; development and build tooling use Node.js 24
 - **License:** MIT
 - **n8n API Version:** 1
 - **Node Entry:** `dist/nodes/MaibaoApi/MaibaoApi.node.js`
@@ -151,8 +152,8 @@ API requests and credential testing use the fixed URL `https://ai.lmao.net.cn/v1
 
 ### CHANGELOG.md
 
-- **Latest:** v1.4.4 (2026-10-17)
-- **Changes:** API Key-only credentials; all API requests use the fixed AI domain, including existing credentials
+- **Latest:** v1.4.5 (2026-10-20)
+- **Changes:** Recover AAC timing from complete packet tables; preserve priming/trims; improve audio input diagnostics without adding dependencies
 
 ### LICENSE.md
 
@@ -166,6 +167,7 @@ API requests and credential testing use the fixed URL `https://ai.lmao.net.cn/v1
 
 - **Triggers:** Pull requests, pushes to the `main` branch
 - **Node Version:** 24
+- **Runtime Compatibility:** Node.js 22.16.0 runs the full regression suite against the Node.js 24 build
 - **Steps:**
   1. Install dependencies (`npm ci`)
   2. Run linter (`npm run lint`)
@@ -240,7 +242,7 @@ Or install via n8n Community Nodes UI.
 - **Text:** `POST /v1/chat/completions`
 - **Image (Gemini):** `POST /v1beta/models/{model}:generateContent`
 - **Image (GPT Image):** `POST /v1/images/generations` or multipart `POST /v1/images/edits`
-- **Audio:** `POST /v1/chat/completions` (legacy Whisper backend: `POST /v1/audio/transcriptions`)
+- **Audio:** `POST /v1/chat/completions` (active Omni); `POST /v1/audio/transcriptions` (legacy Whisper)
 The following endpoints belong to hidden modes:
 
 - **Video Create:** `POST /v1/videos`
@@ -267,7 +269,7 @@ Only the two 2.5 models expose 超高 (`xhigh`), 最高 (`max`) and background s
 
 Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them must select a supported model; otherwise execution fails before sending a generation request.
 
-**Audio Transcription:** `qwen3.5-omni-flash`; legacy `whisper-1` backend retained behind `ACTIVE_AUDIO_BACKEND`. Success output contains only timestamped Markdown `text`.
+**Audio Transcription:** `qwen3.5-omni-flash`; legacy `whisper-1` retained. Pure JavaScript MP4/M4A AAC extraction uses packet-derived duration since 1.4.5 and returns timestamped Markdown `text`.
 
 **Video Generation (hidden):**
 
@@ -314,7 +316,14 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 
 ## 🔄 Version History
 
-### v1.4.4 (Current)
+### v1.4.5 (Current)
+
+- Derives audio duration from complete AAC packet timing, tolerating inaccurate or unknown declared duration
+- Preserves encoder delay, trims and global timestamps; clamps small tail rounding and rejects unavailable audio
+- Reports specific media parsing failures and aligns active input formats to MP4/M4A
+- Retains the same installation method and Markdown output without FFmpeg or new runtime dependencies
+
+### v1.4.4
 
 - Credentials require only an API Key; removes the API address selector
 - Credential testing and all API requests use `https://ai.lmao.net.cn`, ignoring saved credential URLs
@@ -368,5 +377,5 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 ---
 
 **Index Status:** ✅ Complete
-**Last Updated:** 2026-10-17
+**Last Updated:** 2026-10-20
 **Maintainer:** 毛淞淮 (maosonghuai)

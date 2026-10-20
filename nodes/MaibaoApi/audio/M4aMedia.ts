@@ -170,57 +170,14 @@ export function inspectAac(bytes: Uint8Array): AacMedia {
 			return { trackChildren, media, handler: typeAt(handler, 8) };
 		})
 		.filter((track) => track.handler === 'soun');
-	requireValue(tracks.length === 1, 'Exactly one audio track is required');
+	requireValue(tracks.length > 0, 'No audio track found');
+	requireValue(tracks.length === 1, 'Multiple audio tracks are unsupported');
 	const { trackChildren, media } = tracks[0];
 	const mdhd = payload(bytes, only(media, 'mdhd'));
 	requireValue(mdhd[0] === 0 || mdhd[0] === 1, 'Unsupported mdhd version');
+	requireValue(mdhd.length >= (mdhd[0] === 1 ? 36 : 24), 'Truncated mdhd');
 	const timescale = u32(mdhd, mdhd[0] === 1 ? 20 : 12);
-	const mediaDurationTicks = mdhd[0] === 1 ? u64(mdhd, 24) : u32(mdhd, 16);
-	requireValue(
-		timescale > 0 && mediaDurationTicks > 0 && mediaDurationTicks < 0x100000000,
-		'Unsupported audio timescale/duration',
-	);
-	let durationTicks = mediaDurationTicks,
-		mediaStartTicks = 0,
-		timelineOffsetSeconds = 0;
-	const edits = only(trackChildren, 'edts', false);
-	if (edits) {
-		const elst = payload(bytes, only(children(bytes, edits), 'elst'));
-		const mvhd = payload(bytes, only(movie, 'mvhd'));
-		requireValue(mvhd[0] === 0 || mvhd[0] === 1, 'Unsupported mvhd');
-		const movieScale = u32(mvhd, mvhd[0] === 1 ? 20 : 12);
-		requireValue(movieScale > 0 && (elst[0] === 0 || elst[0] === 1), 'Invalid audio edit list');
-		const n = u32(elst, 4),
-			width = elst[0] === 1 ? 20 : 12;
-		requireValue(
-			(n === 1 || n === 2) && elst.length === 8 + n * width,
-			'Multiple audio edits are unsupported',
-		);
-		for (let i = 0; i < n; i++) {
-			const at = 8 + i * width;
-			const segmentDuration = elst[0] === 1 ? u64(elst, at) : u32(elst, at);
-			const mediaAt = at + (elst[0] === 1 ? 8 : 4);
-			const empty =
-				u32(elst, mediaAt) === 0xffffffff &&
-				(elst[0] === 0 || u32(elst, mediaAt + 4) === 0xffffffff);
-			requireValue(u32(elst, at + width - 4) === 0x10000, 'Audio edit playback rate must be 1');
-			if (empty) {
-				requireValue(i === 0 && n === 2, 'Only a leading empty audio edit is supported');
-				timelineOffsetSeconds = segmentDuration / movieScale;
-			} else {
-				requireValue(i === n - 1, 'Multiple audio edits are unsupported');
-				mediaStartTicks = elst[0] === 1 ? u64(elst, mediaAt) : u32(elst, mediaAt);
-				const requested = Math.round((segmentDuration * timescale) / movieScale);
-				requireValue(
-					mediaStartTicks < mediaDurationTicks &&
-						requested > 0 &&
-						requested <= mediaDurationTicks - mediaStartTicks + Math.ceil(timescale / movieScale),
-					'Audio edit exceeds media duration',
-				);
-				durationTicks = Math.min(requested, mediaDurationTicks - mediaStartTicks);
-			}
-		}
-	}
+	requireValue(timescale > 0, 'Invalid audio timescale');
 	const minf = children(bytes, only(media, 'minf'));
 	const stbl = children(bytes, only(minf, 'stbl'));
 	const stsd = payload(bytes, only(stbl, 'stsd'));
@@ -278,10 +235,10 @@ export function inspectAac(bytes: Uint8Array): AacMedia {
 			totalTicks += delta;
 		}
 	}
-	requireValue(
-		cursor === count && totalTicks === mediaDurationTicks,
-		'stts/mdhd sample duration mismatch',
-	);
+	requireValue(cursor === count, 'stts sample count mismatch');
+	// mdhd may omit priming, be stale or use an unknown-duration sentinel.
+	// Complete sample tables, not the declared duration, define the decoded timeline.
+	requireValue(totalTicks > 0 && totalTicks < 0x100000000, 'Unsupported audio sample duration');
 	const cttsBox = only(stbl, 'ctts', false);
 	if (cttsBox) {
 		const ctts = table(bytes, cttsBox, 8);
@@ -361,6 +318,54 @@ export function inspectAac(bytes: Uint8Array): AacMedia {
 			sorted[i].offset >= sorted[i - 1].offset + sorted[i - 1].size,
 			'Overlapping AAC sample bytes',
 		);
+	let durationTicks = totalTicks,
+		mediaStartTicks = 0,
+		timelineOffsetSeconds = 0;
+	const edits = only(trackChildren, 'edts', false);
+	if (edits) {
+		const elst = payload(bytes, only(children(bytes, edits), 'elst'));
+		const mvhd = payload(bytes, only(movie, 'mvhd'));
+		requireValue(mvhd[0] === 0 || mvhd[0] === 1, 'Unsupported mvhd');
+		const movieScale = u32(mvhd, mvhd[0] === 1 ? 20 : 12);
+		requireValue(movieScale > 0 && (elst[0] === 0 || elst[0] === 1), 'Invalid audio edit list');
+		const n = u32(elst, 4),
+			width = elst[0] === 1 ? 20 : 12;
+		requireValue(
+			(n === 1 || n === 2) && elst.length === 8 + n * width,
+			'Multiple audio edits are unsupported',
+		);
+		for (let i = 0; i < n; i++) {
+			const at = 8 + i * width;
+			const segmentDuration = elst[0] === 1 ? u64(elst, at) : u32(elst, at);
+			const mediaAt = at + (elst[0] === 1 ? 8 : 4);
+			const empty =
+				u32(elst, mediaAt) === 0xffffffff &&
+				(elst[0] === 0 || u32(elst, mediaAt + 4) === 0xffffffff);
+			requireValue(u32(elst, at + width - 4) === 0x10000, 'Audio edit playback rate must be 1');
+			if (empty) {
+				requireValue(i === 0 && n === 2, 'Only a leading empty audio edit is supported');
+				timelineOffsetSeconds = segmentDuration / movieScale;
+			} else {
+				requireValue(i === n - 1, 'Multiple audio edits are unsupported');
+				mediaStartTicks = elst[0] === 1 ? u64(elst, mediaAt) : u32(elst, mediaAt);
+				const requested = Math.round((segmentDuration * timescale) / movieScale);
+				const available = totalTicks - mediaStartTicks;
+				const roundingAllowance = Math.max(
+					samples[samples.length - 1].duration,
+					Math.ceil(timescale / movieScale),
+				);
+				requireValue(
+					mediaStartTicks < totalTicks &&
+						Number.isSafeInteger(requested) &&
+						requested > 0 &&
+						requested <= available + roundingAllowance,
+					'Audio edit exceeds available samples',
+				);
+				// Absorb packet/timebase rounding only; never fabricate missing audio.
+				durationTicks = Math.min(requested, available);
+			}
+		}
+	}
 	return {
 		bytes,
 		timescale,

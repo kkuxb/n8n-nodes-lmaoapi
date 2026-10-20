@@ -9,11 +9,13 @@ This is an n8n community node package that provides integration with LmaoAPI (ht
 **Key Features:**
 - Text generation with multimodal support (text + images)
 - Image generation (GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2.1)
-- Audio transcription (qwen3.5-omni-flash; MP4/M4A AAC input, timestamped Markdown text output)
+- Audio transcription (qwen3.5-omni-flash; legacy Whisper-1 implementation retained)
 - GPT Image Base64/URL responses converted to Binary, with original URLs in `json.imageUrl`
 - Cross-node Binary data reading
 
 ## Development Commands
+
+Published node runtime: Node.js `^22.16.0 || ^24.0.0`. Build, development and release tooling use Node.js 24. CI also runs the Node.js 24 build's full regression suite on Node.js 22.16.0.
 
 ```bash
 # Build the node (compiles TypeScript to dist/)
@@ -67,7 +69,7 @@ When the package version is already updated, use `npm run release -- --no-increm
 - Text: `POST /v1/chat/completions`
 - Image (Gemini): `POST /v1beta/models/{model}:generateContent`
 - Image (GPT Image): `POST /v1/images/generations`, multipart `POST /v1/images/edits`
-- Audio: `POST /v1/chat/completions`; legacy Whisper backend uses `POST /v1/audio/transcriptions`
+- Audio: `POST /v1/chat/completions` (active Omni backend); legacy Whisper uses `POST /v1/audio/transcriptions`
 - Video (hidden): `POST /v1/videos`, `GET /v1/videos/{id}`, etc.
 - Embeddings (hidden): `POST /v1/embeddings`
 
@@ -76,6 +78,8 @@ GPT Image generation and edit requests always send `response_format: 'b64_json'`
 GPT Image model values map to their corresponding `-c` provider IDs. Only the two 2.5 models expose `xhigh`/`max` quality and background settings. Transparent backgrounds require PNG or WebP. Nano Banana 1 Pro and Jimeng 5.0 have been removed; existing workflows using them fail before a generation request and must reselect a model.
 
 ### Binary Data Handling
+
+Audio uses pure in-memory JavaScript to extract and split ordinary, unencrypted MP4/M4A AAC tracks. Since 1.4.5, the complete `stts` packet timeline is authoritative even when `mdhd` duration is inaccurate or unknown. Preserve edit-list priming and trims; clamp a tail overrun only within one final packet or one movie-timebase rounding unit. Keep packet/byte integrity and resource limits. Fragmented MP4, non-AAC codecs and complex edits remain unsupported. Do not introduce FFmpeg or runtime dependencies. Successful output remains timestamped Markdown in `text`.
 
 The node supports two Binary source modes:
 1. **Current node input** - Uses `context.getInputData()` and `getBinaryDataBuffer()`

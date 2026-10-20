@@ -197,3 +197,72 @@ test('node hides legacy controls and outputs text only for multiple items, prese
 	assert.match(failed[0].json.error, /未找到音频/);
 	assert.deepEqual(failed[0].pairedItem, { item: 0 });
 });
+
+function audioContext(bytes, onRequest, fileName = 'clip.mp4') {
+	return {
+		getInputData: () => [
+			{
+				json: {},
+				binary: { data: { fileName, mimeType: 'video/mp4', data: bytes.toString('base64') } },
+			},
+		],
+		getNodeParameter: (name, index, fallback) => (name === 'mode' ? 'audio' : fallback),
+		getCredentials: async () => ({ apiKey: 'test' }),
+		getNode: () => ({ name: 'test', type: 'maibaoApi', parameters: {} }),
+		continueOnFail: () => false,
+		helpers: { httpRequest: onRequest },
+	};
+}
+
+test('node directly transcribes intact AAC with inaccurate duration using the unchanged Markdown contract', async () => {
+	const tone = fs.readFileSync(path.join(__dirname, 'fixtures/audio/tone.m4a'));
+	const changed = Buffer.from(tone);
+	changed.writeUInt32BE(1, changed.indexOf('mdhd') + 20);
+	let requests = 0;
+	const context = audioContext(changed, async (options) => {
+		requests++;
+		assert.match(options.url, /chat\/completions$/);
+		const { inspectAac } = require('../dist/nodes/MaibaoApi/audio/M4aMedia');
+		const encoded = options.body.messages[0].content[1].input_audio.data.split(',')[1];
+		assert.equal(inspectAac(Buffer.from(encoded, 'base64')).durationSeconds, 3.3);
+		return ok([{ start: 0, end: 3.3, text: '完整音频' }]);
+	});
+	const [output] = await new MaibaoApi().execute.call(context);
+	assert.equal(requests, 1);
+	assert.deepEqual(output[0].json, { text: '- **[00:00–00:04]** 完整音频' });
+});
+
+test('unsupported and damaged audio report their actual cause before any transcription request', async () => {
+	const tone = fs.readFileSync(path.join(__dirname, 'fixtures/audio/tone.m4a'));
+	const fragment = Buffer.alloc(8);
+	fragment.writeUInt32BE(8);
+	fragment.write('moof', 4);
+	const noAudio = Buffer.from(tone);
+	noAudio.write('vide', noAudio.indexOf('soun'));
+	const codec = Buffer.from(tone);
+	codec.write('Opus', codec.indexOf('mp4a'));
+	const damaged = Buffer.from(tone);
+	damaged.writeUInt32BE(damaged.length, damaged.indexOf('stco') + 12);
+	const edit = Buffer.from(tone);
+	edit.writeUInt32BE(480000, edit.indexOf('elst') + 12);
+	let requests = 0;
+	for (const [bytes, fileName, message] of [
+		[Buffer.concat([tone, fragment]), 'clip.mp4', /分片式 MP4/],
+		[noAudio, 'clip.mp4', /没有音轨/],
+		[codec, 'clip.mp4', /编码|加密/],
+		[damaged, 'clip.mp4', /损坏|不完整/],
+		[edit, 'clip.mp4', /裁剪.*可用音频/],
+		[Buffer.from('ID3 audio'), 'clip.mp3', /仅支持 mp4, m4a/],
+	]) {
+		const context = audioContext(
+			bytes,
+			async () => {
+				requests++;
+				return ok([]);
+			},
+			fileName,
+		);
+		await assert.rejects(new MaibaoApi().execute.call(context), message);
+	}
+	assert.equal(requests, 0);
+});

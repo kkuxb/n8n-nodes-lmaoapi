@@ -351,7 +351,10 @@ async function extractAudioFromBinary(
 	propNames: string[],
 	bufferMap?: Map<string, Buffer>,
 ): Promise<AudioData | null> {
-	const supportedFormats = ['flac', 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'ogg', 'wav', 'webm'];
+	const supportedFormats =
+		ACTIVE_AUDIO_BACKEND === 'omni'
+			? ['mp4', 'm4a']
+			: ['flac', 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'ogg', 'wav', 'webm'];
 
 	for (const propName of propNames) {
 		const binaryData = binary[propName];
