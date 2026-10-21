@@ -97,6 +97,7 @@ export function transformBrandDocument(content, config) {
 		.replaceAll('ai.maibao.chat', new URL(brand.apiOrigin).host)
 		.replaceAll('MaibaoAPI', brand.displayName)
 		.replaceAll('麦包 API Key', `${brand.displayName} API Key`)
+		.replaceAll('麦包凭据', `${brand.displayName} 凭据`)
 		.replaceAll('麦包平台', '龙猫平台');
 }
 
@@ -104,7 +105,10 @@ export function transformChangelog(content, config) {
 	let output = transformBrandDocument(content, config).replace(
 		'修正 README 对麦包返回格式控制能力的说明，区分 OpenAI 官方接口约定与麦包实测结果。',
 		`更新 README 的返回格式说明，区分 OpenAI 官方约定与上游麦包实测；${config.brand.displayName} 跟随上游设置，线上响应行为尚未验证。`,
-	);
+	)
+		.replace('构建、Lint和全部99项回归测试通过，包含17项视频测试；', '上游记录：构建、Lint和全部99项回归测试通过，包含17项视频测试；')
+		.replace('11分10秒原片已完成整片URL实测，得到135段；', '上游麦包服务已对11分10秒原片完成整片URL实测，得到135段；')
+		.replace('没有新增收费调用。', `没有新增收费调用。本项目尚未对 ${config.brand.displayName} 视频理解接口进行线上验证。`);
 	for (const patch of config.changelogPatches ?? []) {
 		const missingEntries = patch.entries.filter((entry) => !output.includes(entry));
 		if (missingEntries.length === 0) continue;
@@ -236,6 +240,10 @@ export function transformReadme(content, config) {
 		.replaceAll('优先切到 Node.js 22', '优先确认当前 shell 使用 Node.js 24')
 		.replaceAll('先构建，再运行全部 Node.js 回归测试', '运行全部回归测试（需先构建）')
 		.replaceAll('运行音频输出与 Binary 默认值测试', '构建并验证 AAC 提取、分段转写、Markdown 输出及旧 Whisper 后端')
+		.replace('实测162MB、11分10秒原片的预检只读取约0.55MB', '上游样例中，162MB、11分10秒原片的预检只读取约0.55MB')
+		.replace('实际完整模型验证素材为11分10秒，尚未验证1小时长片的完整理解质量。', `上游在麦包服务上完成的整片模型验证素材为11分10秒，尚未验证1小时长片的完整理解质量；本项目尚未对 ${config.brand.displayName} 视频理解接口进行线上验证。`)
+		.replace('结果属于待核对初稿：实测仍有', '结果属于待核对初稿：上游实测仍有')
+		.replace('- 11分10秒样片已完成整片实测及135段输出核验；', '- 上游麦包服务已完成11分10秒样片的整片实测及135段输出核验；')
 		.replaceAll('但 2026-10-09 的麦包', '但上游在 2026-10-09 对麦包服务的')
 		.replaceAll('本节点据此向麦包固定请求 Base64', `本节点跟随上游向 ${config.brand.displayName} 固定请求 Base64`)
 		.replaceAll('两个 GPT-Image-2.5 模型及参考图编辑接口尚未完成该参数的在线验证。', `两个 GPT-Image-2.5 模型及参考图编辑接口尚未完成该参数的在线验证；${config.brand.displayName} 的线上响应行为也尚未验证。`)
@@ -263,7 +271,7 @@ export function transformDeveloperDocument(content, config) {
 		.replace(/npm run release -- \d+\.\d+\.\d+ --npm\.allowSameVersion/g, 'npm run release -- --no-increment')
 		.replace(/\(replace `\d+\.\d+\.\d+` with the target version\)/g, '(uses the version already in package.json)')
 		.replaceAll('`master`', `\`${config.brand.branch}\``)
-		.replaceAll('Node.js 22', 'Node.js 24')
+		.replace(/Node\.js 22(?!\.\d)/g, 'Node.js 24')
 		.replaceAll('**Node Version:** 22', '**Node Version:** 24')
 		.replaceAll('API Key + Base URL', 'API Key only; fixed AI endpoint')
 		.replaceAll('Audio transcription (Whisper-1)', 'Audio transcription (qwen3.5-omni-flash; MP4/M4A AAC input, timestamped Markdown text output)')
@@ -274,6 +282,8 @@ export function transformDeveloperDocument(content, config) {
 		.replaceAll('- **Audio:** `POST /v1/audio/transcriptions`', '- **Audio:** `POST /v1/chat/completions` (legacy Whisper backend: `POST /v1/audio/transcriptions`)')
 		.replaceAll('`npm test` (includes build)', '`npm run build`, `npm test`')
 		.replaceAll('Build and run regression tests (`npm test`)', 'Build and run regression tests (`npm run build && npm test`)')
+		.replace('(99 tests, including 17 video tests)', '(including video tests)')
+		.replace('Eleven-minute sample model-tested; one-hour detailed understanding quality remains unverified.', 'Upstream tested an eleven-minute sample with Maibao; LmaoAPI provider execution and one-hour detailed understanding quality remain unverified.')
 		.replace(/`npm test` builds and runs \w+ test files/g, 'After building, `npm test` runs all test files')
 		.replaceAll('Run `npm test` locally to build and execute', 'Run `npm run build` followed by `npm test` locally to execute');
 	const runtimeNote = `Published node runtime: Node.js \`${config.brand.nodeEngine}\`. Build, development and release tooling use Node.js ${config.brand.developmentNodeVersion}. CI also runs the Node.js 24 build's full regression suite on Node.js 22.16.0.`;
@@ -529,6 +539,11 @@ export function prepareCandidate({ projectRoot, candidateRoot, config, upstreamC
 		projectIndex.repository = config.brand.repository.replace(/^git\+/, '');
 		projectIndex.scripts = brandedPackage.scripts;
 		projectIndex.runtime = { node: config.brand.nodeEngine, developmentNode: config.brand.developmentNodeVersion };
+		if (projectIndex.features?.videoUnderstanding?.modelValidatedDurationSeconds !== undefined) {
+			projectIndex.features.videoUnderstanding.upstreamModelValidatedDurationSeconds = projectIndex.features.videoUnderstanding.modelValidatedDurationSeconds;
+			delete projectIndex.features.videoUnderstanding.modelValidatedDurationSeconds;
+			projectIndex.features.videoUnderstanding.lmaoProviderValidated = false;
+		}
 		if (projectIndex.modules?.MaibaoApiCredentials) {
 			projectIndex.modules.MaibaoApiCredentials.properties = ['apiKey'];
 		}

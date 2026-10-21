@@ -1,8 +1,8 @@
 {
   "projectName": "n8n-nodes-lmaoapi",
-  "version": "1.4.5",
+  "version": "1.5.0",
   "type": "n8n-community-node",
-  "generated": "2026-10-20",
+  "generated": "2026-10-21",
   "repository": "https://github.com/kkuxb/n8n-nodes-lmaoapi.git",
   "license": "MIT",
   "author": {
@@ -10,9 +10,9 @@
     "email": "263674673@qq.com"
   },
   "statistics": {
-    "totalSourceLines": 3031,
-    "sourceFiles": 14,
-    "testFiles": 14
+    "totalSourceLines": 3545,
+    "sourceFiles": 17,
+    "testFiles": 15
   },
   "structure": {
     "entryPoints": {
@@ -41,7 +41,7 @@
       "exports": [
         "MaibaoApi"
       ],
-      "lines": 1276,
+      "lines": 1287,
       "functions": [
         "execute",
         "collectBinaryFromNodes",
@@ -50,14 +50,16 @@
       "modes": [
         "text",
         "image",
-        "audio"
+        "audio",
+        "videoUnderstanding"
       ],
       "features": [
         "multimodal-input",
         "cross-node-binary-reading",
         "automatic-base64-conversion",
         "gpt-image-base64-and-url-output",
-        "audio-transcription"
+        "audio-transcription",
+        "full-video-url-understanding"
       ],
       "hiddenModes": [
         "video",
@@ -95,6 +97,18 @@
       "path": "nodes/MaibaoApi/audio/M4aMedia.ts",
       "purpose": "Pure JavaScript AAC extraction, packet-derived duration, presentation trims and M4A chunking without runtime dependencies"
     },
+    "VideoMedia": {
+      "path": "nodes/MaibaoApi/video/VideoMedia.ts",
+      "purpose": "Bounded Range metadata reads and MP4 duration/size validation for arbitrary public HTTP(S) domains"
+    },
+    "VideoUnderstanding": {
+      "path": "nodes/MaibaoApi/video/VideoUnderstanding.ts",
+      "purpose": "Fixed Plus full-video URL request, complete SSE/interval validation and timestamped visual/speech Markdown"
+    },
+    "VideoProperties": {
+      "path": "nodes/MaibaoApi/video/VideoProperties.ts",
+      "purpose": "Video understanding URL-only frontend configuration"
+    },
     "Audio": {
       "path": "nodes/MaibaoApi/audio/",
       "purpose": "AAC extraction and M4A chunking, concurrent Omni transcription and Markdown output; legacy Whisper backend retained"
@@ -116,7 +130,8 @@
       "imageGptGenerate": "POST /v1/images/generations",
       "imageGptEdit": "POST /v1/images/edits",
       "audio": "POST /v1/chat/completions",
-      "audioLegacy": "POST /v1/audio/transcriptions"
+      "audioLegacy": "POST /v1/audio/transcriptions",
+      "videoUnderstanding": "POST /v1/chat/completions"
     },
     "models": {
       "text": {
@@ -218,6 +233,10 @@
       "audio": {
         "default": "qwen3.5-omni-flash",
         "legacy": "whisper-1"
+      },
+      "videoUnderstanding": {
+        "default": "qwen3.5-omni-plus",
+        "customSupported": false
       }
     },
     "hiddenModes": [
@@ -320,8 +339,8 @@
       ]
     },
     "CHANGELOG.md": {
-      "latestVersion": "1.4.5",
-      "date": "2026-10-20"
+      "latestVersion": "1.5.0",
+      "date": "2026-10-21"
     },
     "LICENSE.md": {
       "type": "MIT"
@@ -420,13 +439,39 @@
         "complex edit lists",
         "encrypted audio"
       ]
+    },
+    "videoUnderstanding": {
+      "model": "qwen3.5-omni-plus",
+      "input": "public HTTP(S) ordinary MP4 URL",
+      "arbitraryDomains": true,
+      "maxDurationSeconds": 3600,
+      "maxInputBytes": 2000000000,
+      "maxMetadataBytes": 8388608,
+      "maxOutputTokens": 65536,
+      "totalBudgetMs": 600000,
+      "maxRedirects": 5,
+      "intervalSeconds": 5,
+      "output": "timestamped visual/speech Markdown in json.text",
+      "localFullDownload": false,
+      "slicing": false,
+      "paidRequestRetries": 0,
+      "runtimeDependencies": [],
+      "silentVideoSupported": true,
+      "maximumDurationQualityVerified": false,
+      "upstreamModelValidatedDurationSeconds": 670.527,
+      "lmaoProviderValidated": false
     }
   },
   "versionHistory": [
     {
+      "version": "1.5.0",
+      "date": "2026-10-21",
+      "status": "current",
+      "notes": "URL-only full-video understanding with qwen3.5-omni-plus, bounded metadata reads and timestamped visual/speech Markdown; no new runtime dependencies"
+    },
+    {
       "version": "1.4.5",
       "date": "2026-10-20",
-      "status": "current",
       "notes": "Recover inaccurate/unknown AAC duration from packet timing; preserve edits, improve input diagnostics and keep dependency-free installation"
     },
     {
@@ -488,6 +533,7 @@
     "gpt-image-2.5-sunburst",
     "gpt-image-2.5-flare",
     "音频转文本",
+    "视频理解",
     "nano banana2.1"
   ],
   "runtime": {

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { Readable } = require('node:stream');
 const { MaibaoApi: Credential } = require('../dist/credentials/MaibaoApi.credentials.js');
 const { MaibaoApi: Node } = require('../dist/nodes/MaibaoApi/MaibaoApi.node.js');
 
@@ -75,5 +76,62 @@ test('image, audio and hidden legacy modes ignore retired and custom credential 
 	]) {
 		assertRoute(await captureRequests(credentials, parameters, binary), 'https://ai.lmao.net.cn' + endpoint,
 			parameters.mode === 'video' ? 'test-key' : 'Bearer test-key');
+	}
+});
+
+test('video understanding uses the fixed AI gateway with new or saved credentials and keeps keys off the media host', async () => {
+	const box = (type, ...parts) => {
+		const body = Buffer.concat(parts);
+		const header = Buffer.alloc(8);
+		header.writeUInt32BE(body.length + 8);
+		header.write(type, 4);
+		return Buffer.concat([header, body]);
+	};
+	const mvhd = Buffer.alloc(20);
+	mvhd.writeUInt32BE(1000, 12);
+	mvhd.writeUInt32BE(5000, 16);
+	const hdlr = Buffer.alloc(12);
+	hdlr.write('vide', 8);
+	const media = Buffer.concat([
+		box('ftyp', Buffer.alloc(16)),
+		box('moov', box('mvhd', mvhd), box('trak', box('mdia', box('hdlr', hdlr)))),
+		box('mdat', Buffer.alloc(8)),
+	]);
+	for (const saved of [{}, {
+		lmaoBaseUrl: 'https://api.lmao.net.cn/v1',
+		baseUrl: 'https://custom.example.test/v1',
+	}]) {
+		const apiRequests = [];
+		let mediaRequests = 0;
+		const [items] = await new Node().execute.call({
+			getInputData: () => [{ json: {} }],
+			getCredentials: async () => ({ apiKey: 'test-key', ...saved }),
+			getNodeParameter: (name, _index, fallback) => ({
+				mode: 'videoUnderstanding', videoUnderstandingUrl: 'https://media.example.com/video.mp4?signature=test',
+			})[name] ?? fallback,
+			getNode: () => ({ name: 'test', type: 'lmaoApi', parameters: {} }),
+			continueOnFail: () => true,
+			helpers: {
+				httpRequest: async options => {
+					if (options.method === 'GET') {
+						mediaRequests++;
+						assert.equal(options.headers.Authorization, undefined);
+						const [, start, end] = /^bytes=(\d+)-(\d+)$/.exec(options.headers.Range);
+						const last = Math.min(Number(end), media.length - 1);
+						return {
+							statusCode: 206,
+							headers: { 'content-range': `bytes ${start}-${last}/${media.length}` },
+							body: Readable.from([media.subarray(Number(start), last + 1)]),
+						};
+					}
+					apiRequests.push(options);
+					throw Object.assign(new Error('test-key signature=test'), { statusCode: 401 });
+				},
+			},
+		});
+		assert.ok(mediaRequests > 0);
+		assertRoute(apiRequests, fixedBase + '/chat/completions');
+		assert.equal(JSON.parse(apiRequests[0].body).model, 'qwen3.5-omni-plus');
+		assert.doesNotMatch(items[0].json.error, /test-key|signature=test/);
 	}
 });

@@ -1,7 +1,7 @@
 # Project Index: n8n-nodes-lmaoapi
 
-**Generated:** 2026-10-20
-**Version:** 1.4.5
+**Generated:** 2026-10-21
+**Version:** 1.5.0
 **Type:** n8n Community Node Package
 
 ---
@@ -17,6 +17,8 @@ n8n-nodes-lmaoapi/
 │       ├── MaibaoApi.node.ts       # Main node implementation
 │       ├── GptImageUtils.ts       # Model mapping and request validation
 │       ├── GptImageResponse.ts    # Base64/URL response handling
+│       ├── audio/                # AAC extraction and segmented transcription
+│       ├── video/                # URL metadata probe, full-video understanding and UI
 │       └── maibaoapi.svg           # Node icon
 ├── dist/                           # Compiled output (published to npm)
 │   ├── credentials/
@@ -35,7 +37,7 @@ n8n-nodes-lmaoapi/
 └── LICENSE.md                      # MIT License
 ```
 
-**Total Source Code:** 3031 lines across 14 TypeScript files
+**Total Source Code:** 3545 lines across 17 TypeScript files
 
 ---
 
@@ -45,13 +47,13 @@ n8n-nodes-lmaoapi/
 
 - **Path:** `nodes/MaibaoApi/MaibaoApi.node.ts`
 - **Class:** `MaibaoApi implements INodeType`
-- **Purpose:** n8n node for LmaoAPI integration (text, image, audio)
+- **Purpose:** n8n node for LmaoAPI integration (text, image, audio, video understanding)
 
 ### Credentials
 
 - **Path:** `credentials/MaibaoApi.credentials.ts`
 - **Class:** `MaibaoApi implements ICredentialType`
-- **Purpose:** API Key only; fixed AI endpoint credential definition
+- **Purpose:** API Key credential definition with a fixed API URL
 
 ### Build Output
 
@@ -78,9 +80,10 @@ n8n-nodes-lmaoapi/
 
 1. **Text Generation** - Chat completions with multimodal support (text + images)
 2. **Image Generation** - GPT-Image-2.5 Sunburst, GPT-Image-2.5 Flare, GPT-Image-2, Nano Banana 2.1
-3. **Audio Transcription** - qwen3.5-omni-flash (MP4/M4A AAC input, timestamped Markdown text output)
+3. **Audio Transcription** - qwen3.5-omni-flash; legacy Whisper-1 retained
+4. **Video Understanding** - qwen3.5-omni-plus; full public MP4 URL input
 
-Video and embeddings code remains in the repository but is hidden from the public node interface.
+Sora video generation and embeddings code remains in the repository but is hidden from the public node interface. Video understanding is a separate public mode.
 
 **Key Features:**
 
@@ -89,6 +92,17 @@ Video and embeddings code remains in the repository but is hidden from the publi
 - Pre-reading file system binaries to avoid context issues
 - GPT Image Base64/URL responses produce Binary data; original URLs also appear in `json.imageUrl`
 - GPT Image 2.5 quality and background controls
+- Full-video URL understanding with timestamped visual/speech Markdown and bounded Range metadata reads
+
+### Video Understanding (`nodes/MaibaoApi/video/`)
+
+- `VideoProperties.ts` - URL-only frontend field.
+- `VideoMedia.ts` - HTTP(S) URL validation, bounded Range probing, MP4 duration and size validation.
+- `VideoUnderstanding.ts` - Fixed Plus request, complete SSE/interval validation and Markdown output.
+- Input: ordinary public MP4, arbitrary domains, at most one hour / 2GB; metadata at most 8MiB.
+- Output: `json.text`, approximately five-second visual/speech intervals, with input item pairing.
+- No full local download, slicing, FFmpeg or new runtime dependencies; ten-minute execution budget and no paid-request retry.
+- Upstream tested an eleven-minute sample with Maibao; LmaoAPI provider execution and one-hour detailed understanding quality remain unverified.
 
 ### MaibaoApi Credentials (`credentials/MaibaoApi.credentials.ts`)
 
@@ -108,7 +122,7 @@ API requests and credential testing use the fixed URL `https://ai.lmao.net.cn/v1
 ### package.json
 
 - **Name:** `n8n-nodes-lmaoapi`
-- **Version:** 1.4.5
+- **Version:** 1.5.0
 - **Node Runtime:** `^22.16.0 || ^24.0.0`; development and build tooling use Node.js 24
 - **License:** MIT
 - **n8n API Version:** 1
@@ -152,8 +166,8 @@ API requests and credential testing use the fixed URL `https://ai.lmao.net.cn/v1
 
 ### CHANGELOG.md
 
-- **Latest:** v1.4.5 (2026-10-20)
-- **Changes:** Recover AAC timing from complete packet tables; preserve priming/trims; improve audio input diagnostics without adding dependencies
+- **Latest:** v1.5.0 (2026-10-21)
+- **Changes:** Add URL-only full-video understanding with Plus, bounded metadata probing and timestamped visuals/speech
 
 ### LICENSE.md
 
@@ -173,7 +187,7 @@ API requests and credential testing use the fixed URL `https://ai.lmao.net.cn/v1
   2. Run linter (`npm run lint`)
   3. Build and run regression tests (`npm run build && npm test`)
 
-**Regression tests:** After building, `npm test` runs all test files, including GPT Image model configuration, response handling and node execution. CI runs lint and the full build/test suite.
+**Regression tests:** After building, `npm test` runs all test files (including video tests), including GPT Image model configuration, response handling and node execution. CI runs lint and the full build/test suite.
 
 ---
 
@@ -243,6 +257,7 @@ Or install via n8n Community Nodes UI.
 - **Image (Gemini):** `POST /v1beta/models/{model}:generateContent`
 - **Image (GPT Image):** `POST /v1/images/generations` or multipart `POST /v1/images/edits`
 - **Audio:** `POST /v1/chat/completions` (active Omni); `POST /v1/audio/transcriptions` (legacy Whisper)
+- **Video Understanding:** `POST /v1/chat/completions` (qwen3.5-omni-plus, full video_url input)
 The following endpoints belong to hidden modes:
 
 - **Video Create:** `POST /v1/videos`
@@ -270,6 +285,8 @@ Only the two 2.5 models expose 超高 (`xhigh`), 最高 (`max`) and background s
 Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them must select a supported model; otherwise execution fails before sending a generation request.
 
 **Audio Transcription:** `qwen3.5-omni-flash`; legacy `whisper-1` retained. Pure JavaScript MP4/M4A AAC extraction uses packet-derived duration since 1.4.5 and returns timestamped Markdown `text`.
+
+**Video Understanding:** `qwen3.5-omni-plus`; full URL input, maximum one hour / 2GB, output limit 65,536 tokens. Silent videos return visual descriptions and mark speech as absent. Input limits do not guarantee fine-grained quality at the maximum duration.
 
 **Video Generation (hidden):**
 
@@ -316,7 +333,14 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 
 ## 🔄 Version History
 
-### v1.4.5 (Current)
+### v1.5.0 (Current)
+
+- Adds full-video understanding from arbitrary-domain public MP4 URLs with qwen3.5-omni-plus
+- Reads bounded metadata instead of downloading full video; validates size/duration before a paid request
+- Returns timestamped visual/speech Markdown in text, with cancellation, interval integrity checks and no paid-request retries
+- Retains existing text/image/audio behavior and manual npm publishing
+
+### v1.4.5
 
 - Derives audio duration from complete AAC packet timing, tolerating inaccurate or unknown declared duration
 - Preserves encoder delay, trims and global timestamps; clamps small tail rounding and rejects unavailable audio
@@ -377,5 +401,5 @@ Nano Banana 1 Pro and Jimeng 5.0 were removed. Existing workflows using them mus
 ---
 
 **Index Status:** ✅ Complete
-**Last Updated:** 2026-10-20
+**Last Updated:** 2026-10-21
 **Maintainer:** 毛淞淮 (maosonghuai)

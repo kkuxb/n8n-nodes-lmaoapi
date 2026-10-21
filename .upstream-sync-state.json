@@ -2,8 +2,8 @@
   "upstream": {
     "url": "https://github.com/kkuxb/n8n-nodes-maibaoapi.git",
     "branch": "master",
-    "commit": "74b5ef612de0af011d623ed9a512ffb79f485b19",
-    "version": "1.4.5"
+    "commit": "4b37a3a336e5912df9d904c5ab225d1b0a7c06c9",
+    "version": "1.5.0"
   },
   "managedPaths": [
     ".claude/settings.local.json",
@@ -51,6 +51,9 @@
     "nodes/MaibaoApi/audio/TranscriptMerge.ts",
     "nodes/MaibaoApi/audio/WhisperTranscription.ts",
     "nodes/MaibaoApi/maibaoapi.svg",
+    "nodes/MaibaoApi/video/VideoMedia.ts",
+    "nodes/MaibaoApi/video/VideoProperties.ts",
+    "nodes/MaibaoApi/video/VideoUnderstanding.ts",
     "package-lock.json",
     "package.json",
     "scripts/dev.mjs",
@@ -74,6 +77,7 @@
     "test/item-linking.test.js",
     "test/lmao-credentials.test.js",
     "test/upstream-sync.test.js",
+    "test/video-understanding.test.js",
     "test_timestamp_granularities.bat",
     "tsconfig.json"
   ]
